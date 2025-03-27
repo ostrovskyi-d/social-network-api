@@ -1,6 +1,8 @@
 # JetBrains
 .idea
 
+#Prisma
+generated/prisma/
 
 # Logs
 logs
