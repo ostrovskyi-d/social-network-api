@@ -6,12 +6,7 @@ const {brightCyan: dbColor, red: errorColor}: any = colors;
 
 const connectToDB = async (mongoURI: any) => {
     try {
-        await mongoose.connect(mongoURI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            useFindAndModify: false,
-            useCreateIndex: true
-        });
+        await mongoose.connect(mongoURI);
         if (mongoose.connection.readyState === 1) {
             log.info(`Database connected: ${mongoURI}` );
         }

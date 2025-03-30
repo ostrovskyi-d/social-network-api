@@ -5,7 +5,7 @@ const getLocalizedDate = () => moment().locale('uk');
 
 const Schema = mongoose.Schema;
 
-const adSchema = new Schema({
+const postSchema = new Schema({
         img: {type: String, default: ''},
         name: {type: String},
         description: {type: String},
@@ -24,4 +24,4 @@ const adSchema = new Schema({
     },
 )
 
-export default mongoose.model('Ad', adSchema);
+export default mongoose.model('Post', postSchema);

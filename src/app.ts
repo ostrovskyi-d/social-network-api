@@ -8,7 +8,7 @@ import morgan from 'morgan';
 import {createServer} from "http";
 import {Server, Socket} from "socket.io";
 import log from "./heplers/logger";
-import AdsController from "./controllers/AdsController/AdsController";
+import PostsController from "./controllers/PostsController/PostsController";
 import UserController from "./controllers/UserController/UserController";
 import ChatController from "./controllers/ChatController/ChatController";
 import jwt from './services/authService';
@@ -28,7 +28,7 @@ const io = new Server(httpServer, {
 });
 
 const User = new UserController();
-const Ad = new AdsController();
+const Post = new PostsController();
 const Chat = new ChatController(io).init();
 
 app.use(morgan('combined'));
@@ -41,16 +41,16 @@ app.use('/uploads', express.static('./uploads'));
 
 app.get('/', (req, res) => {
     res.json({
-        message: 'Welcome to GEBO app!',
+        message: 'Welcome to Social Network API!',
     })
 });
 
-app.get('/ads?:page', Ad.index);
-app.get('/ads/:id', Ad.read);
-app.post('/ads', upload.single('img'), Ad.create);
-app.put('/ads/:id', upload.single('img'), Ad.update);
-app.delete('/ads/:id', Ad.delete);
-app.delete('/clear-ads', Ad._clearAdsCollection);
+app.get('/posts?:page', Post.index);
+app.get('/posts/:id', Post.read);
+app.post('/posts', upload.single('img'), Post.create);
+app.put('/posts/:id', upload.single('img'), Post.update);
+app.delete('/posts/:id', Post.delete);
+app.delete('/clear-ads', Post._clearAdsCollection);
 
 app.get('/users', User.index);
 app.get('/users/:id?/:my?', User.read);
@@ -78,7 +78,8 @@ const start = async () => {
     const MONGO_URI = config.MONGO.MONGO_URI;
 
     await connectToDB(MONGO_URI);
-    await httpServer.listen(PORT, () => {
+
+    httpServer.listen(PORT, () => {
         log.info(serverColor(`--app Server listening at http://localhost:${PORT}`))
     })
 }

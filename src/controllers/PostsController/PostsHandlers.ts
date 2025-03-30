@@ -1,4 +1,4 @@
-import AdModel from "../../models/AdModel";
+import AdModel from "../../models/PostModel";
 import {getConfig} from '../../config';
 import colors from "colors";
 import log from "../../heplers/logger";

@@ -1,8 +1,8 @@
-import Ad from './AdModel';
+import Ad from './PostModel';
 import User from './UserModel';
 
 export default {
-    Ad,
+    Post: Ad,
     User,
 }
 

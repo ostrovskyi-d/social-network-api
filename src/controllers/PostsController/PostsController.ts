@@ -1,10 +1,10 @@
-import AdModel from "../../models/AdModel";
+import PostModel from "../../models/PostModel";
 import colors from "colors";
 import UserModel from "../../models/UserModel";
 import {getUserIdByToken} from "../../services/authService";
 import {getConfig} from "../../config";
 import {uploadFile} from "../../services/uploadService";
-import {getAdsFromFilters, getPagedAdsHandler, saveNewAdToDatabase} from "./AdsHandlers";
+import {getAdsFromFilters, getPagedAdsHandler, saveNewAdToDatabase} from "./PostsHandlers";
 import {updateAdOwner} from "../UserController/UserHandlers";
 import {Request, Response} from 'express';
 import log from "../../heplers/logger";
@@ -16,10 +16,10 @@ const {
 
 const {PER_PAGE, S3: {S3_PATH}} = getConfig();
 
-class AdsController {
+class PostsController {
 
     async index(req: Request, res: Response) {
-        log.info('-- AdsController method ".index" called --');
+        log.info('-- PostsController method ".index" called --');
         log.info(`query: ${JSON.stringify(req?.query)}`);
 
         const reqPage = Number(req.query['page']);
@@ -45,7 +45,7 @@ class AdsController {
     }
 
     async create(req: Request, res: Response) {
-        log.info('-- AdsController method ".create" called --');
+        log.info('-- PostsController method ".create" called --');
 
         const {file, body, query, headers: {authorization: auth}} = req || {};
         const {
@@ -59,14 +59,14 @@ class AdsController {
         const {author}: any = await getUserIdByToken(auth);
         const perPage = Number(PER_PAGE);
         const reqPage = Number(query['page']) || 1;
-        const adsTotalPromise = await AdModel.count({});
+        const adsTotalPromise = await PostModel.count({});
         const adsTotal = await adsTotalPromise;
         // const totalPages = Math.ceil(adsTotal / perPage);
 
         file && await uploadFile(file);
 
         // Create Ad
-        const ad = new AdModel({
+        const ad = new PostModel({
             name: name || 'Оголошення',
             img: file ? S3_PATH + file.originalname : '',
             description: description || 'test ad description11',
@@ -125,9 +125,9 @@ class AdsController {
     }
 
     async read(req: Request, res: Response) {
-        log.info('-- AdsController method ".read" called --');
+        log.info('-- PostsController method ".read" called --');
 
-        await AdModel.findOne({_id: req.params.id}).populate({
+        await PostModel.findOne({_id: req.params.id}).populate({
             path: 'author',
             select: '-likedAds'
         }).then((ad: any) => {
@@ -149,7 +149,7 @@ class AdsController {
     }
 
     async update(req: Request, res: Response) {
-        log.info('-- AdsController method ".update" called --');
+        log.info('-- PostsController method ".update" called --');
         const {params} = req || {};
         const paramsId = params.id;
         let file;
@@ -158,7 +158,7 @@ class AdsController {
             file = await uploadFile(req.file);
         }
 
-        await AdModel.findByIdAndUpdate(paramsId, {
+        await PostModel.findByIdAndUpdate(paramsId, {
             $set: {
                 ...req.body,
                 // @ts-ignore
@@ -182,10 +182,10 @@ class AdsController {
     }
 
     async delete(req: Request, res: Response) {
-        log.info('-- AdsController method ".delete" called --');
+        log.info('-- PostsController method ".delete" called --');
 
         const {author: userId}: any = await getUserIdByToken(req.headers.authorization);
-        const deletedAd = await AdModel.findByIdAndDelete(req.params.id).exec();
+        const deletedAd = await PostModel.findByIdAndDelete(req.params.id).exec();
         log.info("Deleted Ad: ", deletedAd);
         await UserModel.updateMany({}, {$pull: {likedAds: req.params.id, ads: req.params.id}});
         const userAds = await UserModel.findById(userId, {ads: '$ads'}).populate('ads');
@@ -208,9 +208,9 @@ class AdsController {
     }
 
     async _clearAdsCollection(req: Request, res: Response) {
-        log.info('-- AdsController method "._clearAdsCollection" called --');
+        log.info('-- PostsController method "._clearAdsCollection" called --');
 
-        await AdModel.deleteMany({}, (ads: any) => {
+        await PostModel.deleteMany({}, (ads: any) => {
             res.json({
                 ads,
                 message: "ONLY FOR DEV ENV: All ads successfully removed from db. Also removed ads links in categories"
@@ -219,4 +219,4 @@ class AdsController {
     }
 }
 
-export default AdsController;
+export default PostsController;

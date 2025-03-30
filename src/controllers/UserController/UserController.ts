@@ -3,7 +3,7 @@ import User from '../../models/UserModel';
 import colors from "colors";
 import jwt from 'jsonwebtoken';
 import {getUserIdByToken} from "../../services/authService";
-import AdModel from "../../models/AdModel";
+import AdModel from "../../models/PostModel";
 import {uploadFile} from "../../services/uploadService";
 import {Request, Response} from 'express';
 import log from "../../heplers/logger";
