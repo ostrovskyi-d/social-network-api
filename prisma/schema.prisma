@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -14,56 +13,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Contact {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
-  email     String @unique
-  linkenIn  String @unique
-  facebook  String @unique
-  instagram String @unique
-  github    String @unique
-  User      User[]
-}
-
-model Post {
-  id       String    @id @default(auto()) @map("_id") @db.ObjectId
-  slug     String    @unique
-  title    String
-  body     String
-  author   User      @relation(fields: [authorId], references: [id])
-  authorId String    @db.ObjectId
-  comments Comment[]
-}
-
 model User {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-
-  contacts  Contact @relation(fields: [contactId], references: [id])
-  contactId String  @db.ObjectId
-
-  email   String   @unique
-  name    String?
-  address Address?
-  posts   Post[]
-  job     String?
-
-  followedBy    User[]   @relation("UserFollows", fields: [followedByIDs], references: [id])
-  followedByIDs String[] @db.ObjectId
-  following     User[]   @relation("UserFollows", fields: [followingIDs], references: [id])
-  followingIDs  String[] @db.ObjectId
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Comment {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
-  comment String
-  post    Post   @relation(fields: [postId], references: [id])
-  postId  String @db.ObjectId
-}
-
-// Address is an embedded document
-type Address {
-  country String?
-  city    String?
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  email       String
+  phoneNumber String
+  gender      String
 }
