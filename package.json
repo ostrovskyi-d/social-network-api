@@ -6,6 +6,10 @@
     "type": "git",
     "url": "https://github.com/ostrovskyi-d/gebo-back.git"
   },
+  "engines": {
+    "node": "22.x",
+    "npm": "10.x"
+  },
   "author": "Denys Ostrovskyi <d.ostrovskyi@pnn.in.ua>",
   "license": "MIT",
   "devDependencies": {
