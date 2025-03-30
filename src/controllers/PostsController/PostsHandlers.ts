@@ -10,12 +10,12 @@ const {
     red: errorColor,
 }: any = colors;
 
-const getAdsFromFilters = async ({
-                                     selectedCategories,
-                                     selectedSubCategories,
-                                     perPage,
-                                     reqPage
-                                 }: any
+const getPostsFromFilters = async ({
+                                       selectedCategories,
+                                       selectedSubCategories,
+                                       perPage,
+                                       reqPage
+                                   }: any
 ) => {
     const commonFilterQuery = [
         {categoryId: {$in: selectedCategories}},
@@ -102,5 +102,5 @@ const saveNewAdToDatabase = async (post: any) => {
 export {
     getPagedAdsHandler,
     saveNewAdToDatabase,
-    getAdsFromFilters,
+    getPostsFromFilters,
 }

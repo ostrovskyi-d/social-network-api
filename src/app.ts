@@ -6,7 +6,7 @@ import cors from 'cors';
 import multer from "multer";
 import morgan from 'morgan';
 import {createServer} from "http";
-import {Server, Socket} from "socket.io";
+import {Server} from "socket.io";
 import log from "./heplers/logger";
 import PostsController from "./controllers/PostsController/PostsController";
 import UserController from "./controllers/UserController/UserController";
@@ -44,6 +44,7 @@ app.get('/', (req, res) => {
         message: 'Welcome to Social Network API!',
     })
 });
+
 
 app.get('/posts?:page', Post.index);
 app.get('/posts/:id', Post.read);

@@ -4,7 +4,7 @@ import PostModel from "../../models/PostModel";
 import {getUserIdByToken} from "../../services/authService";
 import {getConfig} from "../../config";
 import {uploadFile} from "../../services/uploadService";
-import {getAdsFromFilters, getPagedAdsHandler, saveNewAdToDatabase} from "./PostsHandlers";
+import {getPostsFromFilters, getPagedAdsHandler, saveNewAdToDatabase} from "./PostsHandlers";
 import {updateAdOwner} from "../UserController/UserHandlers";
 import {Request, Response} from 'express';
 import log from "../../heplers/logger";
@@ -34,12 +34,12 @@ class PostsController {
             log.info(`response: ${JSON.stringify(result)}`);
 
             if (!result) {
-                return res.status(404).json({
+                res.status(404).json({
                     message: `Error. Can't handle posts at page №: ${+req.query['page']}`,
                     ads: result
                 })
             } else {
-                return res.json(result)
+                res.json(result)
             }
         }
     }
@@ -59,8 +59,8 @@ class PostsController {
         const {author}: any = await getUserIdByToken(auth);
         const perPage = Number(PER_PAGE);
         const reqPage = Number(query['page']) || 1;
-        const adsTotalPromise = await PostModel.countDocuments({});
-        const adsTotal = await adsTotalPromise;
+        // const adsTotalPromise = await PostModel.countDocuments({});
+        // const adsTotal = await adsTotalPromise;
         // const totalPages = Math.ceil(adsTotal / perPage);
 
         file && await uploadFile(file);
@@ -86,17 +86,17 @@ class PostsController {
                     const result = await getPagedAdsHandler(reqPage);
 
                     if (!result) {
-                        return res.status(404).json({
+                        res.status(404).json({
                             message: `Error. Can't handle posts at page №: ${reqPage}`,
                             ads: result
                         })
                     } else {
-                        return res.json(result)
+                        res.json(result)
                     }
                 }
             } else {
 
-                const {totalPages, ads, selectedAdsCount} = await getAdsFromFilters({
+                const {totalPages, posts, selectedAdsCount} = await getPostsFromFilters({
                     selectedCategories,
                     selectedSubCategories,
                     perPage,
@@ -104,9 +104,9 @@ class PostsController {
                 });
 
                 // log.info(dbColor(result));
-                return res.json({
+                res.json({
                     message: `Ads successfully found`,
-                    ads: ads,
+                    ads: posts,
                     adsTotal: selectedAdsCount,
                     totalPages: totalPages,
                     perPage,
@@ -119,7 +119,7 @@ class PostsController {
             if (!!savedAd) {
                 // Update user with ref to this ad
                 await updateAdOwner(ad, author);
-                return res.json(savedAd)
+                res.json(savedAd)
             }
         }
     }
