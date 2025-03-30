@@ -6,28 +6,25 @@ const getLocalizedDate = () => moment().locale('uk');
 const Schema = mongoose.Schema;
 
 interface Post {
-    img: string;
-    name?: string;
+    img?: string;
     description?: string;
-    categoryId: string;
-    subCategoryId: string;
     author: Object;
-    date?: string;
+    date: string;
+    likes: {
+        count: number;
+        users: Array<String>
+    }
 }
-
 
 const postSchema = new Schema<Post>({
         img: {type: String, default: ''},
-        name: {type: String},
         description: {type: String},
         author: {type: Schema.Types.ObjectId, ref: 'User',},
-        categoryId: {
-            type: String,
-        },
-        subCategoryId: {
-            type: String,
-        },
         date: {type: String, default: getLocalizedDate().format('DD MMMM, HH:mm')},
+        likes: {
+            count: {type: Number, default: 0},
+            users: [{type: Schema.Types.ObjectId, ref: 'User'}]
+        }
     },
     {
         timestamps: true,

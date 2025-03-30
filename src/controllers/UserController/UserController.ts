@@ -3,7 +3,7 @@ import User from '../../models/UserModel';
 import colors from "colors";
 import jwt from 'jsonwebtoken';
 import {getUserIdByToken} from "../../services/authService";
-import AdModel from "../../models/PostModel";
+import PostModel from "../../models/PostModel";
 import {uploadFile} from "../../services/uploadService";
 import {Request, Response} from 'express';
 import log from "../../heplers/logger";
@@ -16,11 +16,43 @@ const JWT_SECRET = config.AUTH.JWT_SECRET;
 class UserController {
     async index(req: Request, res: Response) {
         try {
-            const users = await User.find({}).exec();
+            const perPage = Number(req.query['count']);
+            const reqPage = Number(req.query['page']);
+            const isFollowing = Boolean(req.query['following']);
+            const searchQuery = String(req.query['search']);
+            const usersTotal = await User.countDocuments({});
+            const totalPages = Math.ceil(usersTotal / perPage);
+
+            let targetUsers: Array<Object> = [];
+
+            if (searchQuery) {
+                targetUsers = await User.find({name: searchQuery}) // not correct todo: make it WORK
+                    .skip(perPage * reqPage - perPage)
+                    .limit(perPage)
+                    .populate({path: 'following', select: 'name photos'})
+                    .sort({createdAt: -1})
+                    .exec();
+            } else {
+                targetUsers = await User
+                    .find()
+                    .skip(perPage * reqPage - perPage)
+                    .limit(perPage)
+                    .populate({path: 'following', select: 'name photos'})
+                    .sort({createdAt: -1})
+                    .exec();
+            }
+
             log.info(`Users successfully found`);
+
             res.json({
-                resultCode: res.statusCode,
-                message: `Users successfully found`, users
+                message: `Users successfully found`,
+                data: {
+                    users: targetUsers,
+                    usersTotal,
+                    totalPages,
+                    perPage,
+                    currentPage: reqPage || 1,
+                }
             });
         } catch (err) {
             log.info(`Error, can't find users: ${JSON.stringify(err)}`);
@@ -111,7 +143,7 @@ class UserController {
 
             await User.deleteOne({_id: userId}).then(async (user: any) => {
                 if (user) {
-                    await AdModel.deleteMany({'author': userId});
+                    await PostModel.deleteMany({'author': userId});
 
                     res.json({
                         resultCode: res.statusCode,
@@ -136,10 +168,10 @@ class UserController {
         const getUser = async (req: any) => {
             log.info(req)
             if (req.params['my']) {
-                return await User.findOne({_id: req.params.id}, 'likedAds')
+                return await User.findOne({_id: req.params.id}, 'likedPosts')
                     .populate({
-                        path: 'likedAds',
-                        model: AdModel,
+                        path: 'likedPosts',
+                        model: PostModel,
                         populate: {
                             path: 'author',
                             select: 'name phone'
@@ -149,14 +181,14 @@ class UserController {
             } else {
                 return await User.findOne({_id: req.params.id})
                     .populate({
-                        path: 'ads',
-                        model: AdModel,
+                        path: 'posts',
+                        model: PostModel,
                         populate: {
                             path: 'author',
                             select: 'name phone',
                         }
                     })
-                    .populate('likedAds')
+                    .populate('likedPosts')
                     .exec();
             }
         }

@@ -12,10 +12,24 @@ interface User {
 const userSchema = new Schema<User>(
     {
         name: {type: String, required: true,},
+        email: {type: String, required: true, unique: true},
+        country: {type: String},
         phone: {type: String},
-        avatar: {type: String},
-        likedAds: [{type: Schema.Types.ObjectId, ref: 'Post'}],
+        photos: {
+            avatar: {type: String},
+            background: {type: String},
+        },
+        job: {type: String},
+        likedPosts: [{type: Schema.Types.ObjectId, ref: 'Post'}],
         posts: [{type: Schema.Types.ObjectId, ref: 'Post'}],
+        followedBy: [{type: Schema.Types.ObjectId, ref: 'User'}],
+        following: [{type: Schema.Types.ObjectId, ref: 'User'}],
+        contacts: {
+            linkedIn: {type: String, unique: true},
+            github: {type: String, unique: true},
+            facebook: {type: String, unique: true},
+            instagram: {type: String, unique: true},
+        },
     },
     {versionKey: false},
     // @ts-ignore

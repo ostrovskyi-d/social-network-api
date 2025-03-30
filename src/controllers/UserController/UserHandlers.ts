@@ -4,7 +4,7 @@ const updateAdOwner = async (ad: any, adOwner: any) => {
     try {
         const user = await User.findOneAndUpdate(
             {_id: adOwner},
-            {"$addToSet": {ads: ad}}
+            {"$addToSet": {posts: ad}}
         );
 
         if (!user) {

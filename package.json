@@ -13,6 +13,7 @@
   "author": "Denys Ostrovskyi <d.ostrovskyi@pnn.in.ua>",
   "license": "MIT",
   "devDependencies": {
+    "@faker-js/faker": "^9.6.0",
     "@types/body-parser": "^1.19.5",
     "@types/colors": "^1.2.4",
     "@types/cors": "^2.8.17",
@@ -33,9 +34,6 @@
     "start": "ts-node-dev --transpile-only --respawn src/app.ts"
   },
   "dependencies": {
-    "ts-node": "^10.9.2",
-    "morgan": "^1.10.0",
-    "pino": "^9.6.0",
     "@babel/cli": "^7.27.0",
     "@babel/core": "^7.26.10",
     "@babel/node": "^7.26.0",
@@ -54,16 +52,20 @@
     "express": "^4.21.2",
     "express-formidable": "^1.2.0",
     "express-jwt": "^8.5.1",
+    "express-mongoose-docs": "^0.3.2",
     "express-ws": "^5.0.2",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.30.1",
     "mongodb": "^6.15.0",
     "mongoose": "^8.13.1",
+    "morgan": "^1.10.0",
     "multer": "^1.4.4",
     "multer-s3": "^3.0.1",
+    "pino": "^9.6.0",
     "pino-pretty": "^13.0.0",
     "shortid": "^2.2.17",
     "socket.io": "^4.8.1",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.2",
     "url": "^0.11.4"

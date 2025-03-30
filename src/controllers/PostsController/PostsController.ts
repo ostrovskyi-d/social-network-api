@@ -207,7 +207,7 @@ class PostsController {
 
     }
 
-    async _clearAdsCollection(req: Request, res: Response) {
+    async _clearPostsCollection(req: Request, res: Response) {
         log.info('-- PostsController method "._clearAdsCollection" called --');
 
         await PostModel.deleteMany({}, (ads: any) => {

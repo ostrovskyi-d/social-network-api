@@ -14,7 +14,6 @@ import ChatController from "./controllers/ChatController/ChatController";
 import jwt from './services/authService';
 import connectToDB from "./services/dbConnectService";
 
-
 const {brightGreen: serverColor}: any = colors;
 const config = getConfig();
 const app = express();
@@ -51,12 +50,12 @@ app.get('/posts/:id', Post.read);
 app.post('/posts', upload.single('img'), Post.create);
 app.put('/posts/:id', upload.single('img'), Post.update);
 app.delete('/posts/:id', Post.delete);
-app.delete('/clear-ads', Post._clearAdsCollection);
+app.delete('/clear-posts', Post._clearPostsCollection);
 
 app.get('/users', User.index);
 app.get('/users/:id?/:my?', User.read);
 app.post('/add-new-user', upload.single('avatar'), User.create);
-app.put('/toggle-like-ad', User.update);
+app.put('/toggle-like-post', User.update);
 app.put('/user', upload.single('avatar'), User.update)
 app.delete('/users', User.delete);
 app.delete('/clear-users', User._clearUsersCollection);
