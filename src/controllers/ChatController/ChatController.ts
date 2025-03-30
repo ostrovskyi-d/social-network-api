@@ -44,7 +44,7 @@ class ChatController {
                 members: {$in: [req.params.userId]}
             });
             const messages = await MessageModel.find({
-                conversation: conversation._id,
+                // conversation: conversation._id, - correct one
             })
             if(!conversation) {
                 res.json({message: 'conversation not found'})
