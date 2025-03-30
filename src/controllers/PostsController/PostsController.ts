@@ -1,6 +1,6 @@
-import PostModel from "../../models/PostModel";
 import colors from "colors";
 import UserModel from "../../models/UserModel";
+import PostModel from "../../models/PostModel";
 import {getUserIdByToken} from "../../services/authService";
 import {getConfig} from "../../config";
 import {uploadFile} from "../../services/uploadService";
@@ -35,7 +35,7 @@ class PostsController {
 
             if (!result) {
                 return res.status(404).json({
-                    message: `Error. Can't handle ads at page №: ${+req.query['page']}`,
+                    message: `Error. Can't handle posts at page №: ${+req.query['page']}`,
                     ads: result
                 })
             } else {
@@ -59,7 +59,7 @@ class PostsController {
         const {author}: any = await getUserIdByToken(auth);
         const perPage = Number(PER_PAGE);
         const reqPage = Number(query['page']) || 1;
-        const adsTotalPromise = await PostModel.count({});
+        const adsTotalPromise = await PostModel.countDocuments({});
         const adsTotal = await adsTotalPromise;
         // const totalPages = Math.ceil(adsTotal / perPage);
 
@@ -69,7 +69,7 @@ class PostsController {
         const ad = new PostModel({
             name: name || 'Оголошення',
             img: file ? S3_PATH + file.originalname : '',
-            description: description || 'test ad description11',
+            description: description || 'test post description11',
             author: author,
             categoryId: categoryId || '1',
             subCategoryId: subCategoryId || '1'
@@ -87,7 +87,7 @@ class PostsController {
 
                     if (!result) {
                         return res.status(404).json({
-                            message: `Error. Can't handle ads at page №: ${reqPage}`,
+                            message: `Error. Can't handle posts at page №: ${reqPage}`,
                             ads: result
                         })
                     } else {
@@ -134,16 +134,16 @@ class PostsController {
             if (!ad) {
                 res.json({
                     resultCode: res.statusCode,
-                    message: `Ad with id ${req.params.id} not found in DB`,
+                    message: `Post with id ${req.params.id} not found in DB`,
                 })
-                log.info(errorColor(`Ad with id ${req.params.id} not found in DB`))
+                log.info(errorColor(`Post with id ${req.params.id} not found in DB`))
             } else {
                 res.json({
                     resultCode: res.statusCode,
-                    message: `Ad with id ${req.params.id} found successfully in DB`,
+                    message: `Post with id ${req.params.id} found successfully in DB`,
                     ad
                 })
-                log.info(dbColor(`Ad with id ${req.params.id} found successfully in DB`))
+                log.info(dbColor(`Post with id ${req.params.id} found successfully in DB`))
             }
         })
     }
@@ -170,13 +170,13 @@ class PostsController {
                     resultCode: res.statusCode,
                     message: err
                 })
-                log.info(errorColor(`Error, cannot update Ad with id ${req.params.id}: `), err)
+                log.info(errorColor(`Error, cannot update Post with id ${req.params.id}: `), err)
             } else {
                 res.json({
                     resultCode: res.statusCode,
-                    message: `Ad with id ${req.params.id} is successfully updated`
+                    message: `Post with id ${req.params.id} is successfully updated`
                 })
-                log.info(dbColor(`Ad with id ${req.params.id} is successfully updated`, req.body))
+                log.info(dbColor(`Post with id ${req.params.id} is successfully updated`, req.body))
             }
         })
     }
@@ -193,16 +193,16 @@ class PostsController {
         if (userAds) {
             res.json({
                 resultCode: 201,
-                message: `Ad with id ${req.params.id} successfully deleted from DB`,
+                message: `Post with id ${req.params.id} successfully deleted from DB`,
                 ads: userAds
             })
-            log.info(dbColor(`Ad with id ${req.params.id} successfully deleted from DB`))
+            log.info(dbColor(`Post with id ${req.params.id} successfully deleted from DB`))
         } else {
             res.json({
                 resultCode: 409,
-                message: `Error, can\'t delete Ad with id ${req.params.id} from DB`
+                message: `Error, can\'t delete Post with id ${req.params.id} from DB`
             })
-            log.info(errorColor(`Error, can\'t delete Ad with id ${req.params.id} from DB`))
+            log.info(errorColor(`Error, can\'t delete Post with id ${req.params.id} from DB`))
         }
 
     }
@@ -213,7 +213,7 @@ class PostsController {
         await PostModel.deleteMany({}, (ads: any) => {
             res.json({
                 ads,
-                message: "ONLY FOR DEV ENV: All ads successfully removed from db. Also removed ads links in categories"
+                message: "ONLY FOR DEV ENV: All posts successfully removed from db. Also removed posts links in categories"
             })
         });
     }

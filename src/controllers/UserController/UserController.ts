@@ -78,12 +78,12 @@ class UserController {
     async update(req: Request, res: Response) {
         try {
             const {body, params, headers, file} = req;
-            const {likedAds, name, phone} = body;
-            // @ts-ignore
-            const {author: updatedForId} = await getUserIdByToken(headers?.authorization);
+            const {likedAds: likedPosts, name, phone} = body;
+
+            const authorId = await getUserIdByToken(headers.authorization);
 
             file && await uploadFile(file);
-            const userId = params?.id || updatedForId;
+            const userId = params?.id || authorId;
 
             await User.findByIdAndUpdate(userId, {
                 $set: {
@@ -94,7 +94,7 @@ class UserController {
             await User.updateOne({_id: userId}, {$set: {...body}});
             const updatedUser: any = await User.findById(userId).exec();
 
-            if (likedAds) {
+            if (likedPosts) {
                 res.json({likedAds: updatedUser['likedAds']})
             } else {
                 res.json(updatedUser)

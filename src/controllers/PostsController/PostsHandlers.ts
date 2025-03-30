@@ -1,4 +1,4 @@
-import AdModel from "../../models/PostModel";
+import PostModel from "../../models/PostModel";
 import {getConfig} from '../../config';
 import colors from "colors";
 import log from "../../heplers/logger";
@@ -10,7 +10,13 @@ const {
     red: errorColor,
 }: any = colors;
 
-const getAdsFromFilters = async ({selectedCategories, selectedSubCategories, perPage, reqPage}: any) => {
+const getAdsFromFilters = async ({
+                                     selectedCategories,
+                                     selectedSubCategories,
+                                     perPage,
+                                     reqPage
+                                 }: any
+) => {
     const commonFilterQuery = [
         {categoryId: {$in: selectedCategories}},
         {subCategoryId: {$in: selectedSubCategories}}
@@ -21,9 +27,9 @@ const getAdsFromFilters = async ({selectedCategories, selectedSubCategories, per
             ? {$and: commonFilterQuery}
             : {$or: commonFilterQuery};
 
-    const selectedAdsCount = await AdModel.count(filterCondition);
+    const selectedAdsCount = await PostModel.countDocuments(filterCondition);
 
-    const ads = await AdModel
+    const posts = await PostModel
         .find(filterCondition)
         .skip(perPage * reqPage - perPage)
         .limit(+perPage)
@@ -32,12 +38,12 @@ const getAdsFromFilters = async ({selectedCategories, selectedSubCategories, per
         .exec();
 
     const result = {
-        ads: ads,
+        posts: posts,
         totalPages: Math.ceil(selectedAdsCount / perPage),
         selectedAdsCount: selectedAdsCount,
     };
 
-    log.info("selectedAdsCount: ", selectedAdsCount);
+    log.info("selectedPostsCount: ", selectedAdsCount);
     log.info("perPage: ", perPage);
     log.info("totalPages: ", result.totalPages);
     return result;
@@ -46,22 +52,21 @@ const getPagedAdsHandler = async (pageQuery: any = 1) => {
     try {
         const perPage = +PER_PAGE;
         const reqPage = pageQuery || 1;
-        const adsTotalPromise = await AdModel.count({});
-        const adsTotal = await adsTotalPromise;
-        const totalPages = Math.ceil(adsTotal / perPage);
+        const postsTotal = await PostModel.countDocuments({});
+        const totalPages = Math.ceil(postsTotal / perPage);
         log.info(pageQuery);
         log.info(perPage * reqPage - perPage);
-        const pagedAds = await AdModel.find({})
+        const pagedAds = await PostModel.find({})
             .skip(perPage * reqPage - perPage)
             .limit(+perPage)
-            .populate({path: 'author', select: '-likedAds'})
+            .populate({path: 'author', select: '-likedPosts'})
             .sort({createdAt: -1})
             .exec();
 
         return {
-            message: `Ads successfully found`,
+            message: `Posts successfully found`,
             ads: pagedAds,
-            adsTotal,
+            adsTotal: postsTotal,
             totalPages,
             perPage,
             currentPage: reqPage
@@ -76,14 +81,14 @@ const getPagedAdsHandler = async (pageQuery: any = 1) => {
 }
 
 
-const saveNewAdToDatabase = async (ad: any) => {
+const saveNewAdToDatabase = async (post: any) => {
     try {
-        const savedAd: any = await ad.save();
-        if (savedAd) {
-            log.info(dbColor(`Ad with id ${ad._id} successfully saved to DB`))
+        const savedPost: any = await post.save();
+        if (savedPost) {
+            log.info(dbColor(`Post with id ${post._id} successfully saved to DB`))
             return {
-                message: `Ad with id ${ad._id} successfully saved to DB`,
-                ad
+                message: `Post with id ${post._id} successfully saved to DB`,
+                post
             }
         }
     } catch (err: any) {

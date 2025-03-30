@@ -6,7 +6,7 @@ interface User {
     name: string;
     phone?: string;
     avatar?: string;
-    ads?: Array<string>
+    posts?: Array<string>
 }
 
 const userSchema = new Schema<User>(
@@ -14,8 +14,8 @@ const userSchema = new Schema<User>(
         name: {type: String, required: true,},
         phone: {type: String},
         avatar: {type: String},
-        likedAds: [{type: Schema.Types.ObjectId, ref: 'Ad'}],
-        ads: [{type: Schema.Types.ObjectId, ref: 'Ad'}],
+        likedAds: [{type: Schema.Types.ObjectId, ref: 'Post'}],
+        posts: [{type: Schema.Types.ObjectId, ref: 'Post'}],
     },
     {versionKey: false},
     // @ts-ignore
