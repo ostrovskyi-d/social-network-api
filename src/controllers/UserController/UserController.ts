@@ -7,6 +7,7 @@ import PostModel from "../../models/PostModel";
 import {uploadFile} from "../../services/uploadService";
 import {Request, Response} from 'express';
 import log from "../../heplers/logger";
+import logger from "../../heplers/logger";
 
 const {brightCyan: dbColor, red: errorColor}: any = colors;
 const config = getConfig();
@@ -25,12 +26,12 @@ class UserController {
 
             // Apply search filter if searchQuery is present
             if (searchQuery) {
-                filter.name = { $regex: searchQuery, $options: 'i' };
+                filter.name = {$regex: searchQuery, $options: 'i'};
             }
 
             // Apply following filter if isFollowing is true
             if (isFollowing) {
-                filter.following = { $exists: true, $ne: [] };
+                filter.following = {$exists: true, $ne: []};
             }
 
             // Get total user count with applied filters
@@ -41,8 +42,8 @@ class UserController {
             const users = await User.find(filter)
                 .skip((reqPage - 1) * perPage)
                 .limit(perPage)
-                .populate({ path: 'following', select: 'name photos' })
-                .sort({ createdAt: -1 })
+                .populate({path: 'following', select: 'name photos'})
+                .sort({createdAt: -1})
                 .exec();
 
             log.info(`Users successfully found. Total: ${users.length}`);
@@ -137,6 +138,22 @@ class UserController {
         }
     }
 
+    async auth(req: Request, res: Response) {
+        try {
+            const {sub: userId}: any = await getUserIdByToken(req.headers.authorization);
+
+            const {_id, name, email}: any = await User.findById(userId);
+
+            res.json({
+                userId: _id,
+                name: name,
+                email: email,
+            });
+        } catch (err) {
+            res.status(500).json(err);
+        }
+    }
+
     async delete(req: Request, res: Response) {
         try {
             const {author: userId}: any = await getUserIdByToken(req.headers.authorization)
@@ -195,7 +212,7 @@ class UserController {
         try {
             let user = await getUser(req);
             log.info(user);
-            if(user) {
+            if (user) {
                 res.status(200).json({
                     message: `User with id ${req.params.id} found successfully in DB`,
                     user

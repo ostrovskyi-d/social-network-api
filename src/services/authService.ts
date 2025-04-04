@@ -3,6 +3,7 @@ import {getConfig} from '../config';
 import UserController from '../controllers/UserController/UserController'
 import {verify} from "jsonwebtoken";
 import {expressjwt} from "express-jwt";
+import log from "../heplers/logger";
 
 const config = getConfig();
 const {AUTH} = config;
@@ -34,7 +35,9 @@ const jwt = () => {
 export const getUserIdByToken = async (token: string | undefined) => {
     const parsedToken: string | undefined = token?.toString().includes('Bearer') ? token.split('Bearer ')[1] : token;
     if (parsedToken) {
-        return verify(parsedToken, AUTH.JWT_SECRET as string);
+        const verifyResult = verify(parsedToken, AUTH.JWT_SECRET as string);
+
+        return verifyResult;
     }
 }
 
