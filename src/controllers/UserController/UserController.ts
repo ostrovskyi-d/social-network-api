@@ -7,7 +7,8 @@ import PostModel from "../../models/PostModel";
 import {uploadFile} from "../../services/uploadService";
 import {Request, Response} from 'express';
 import log from "../../heplers/logger";
-import logger from "../../heplers/logger";
+import bcrypt from 'bcrypt';
+import {userMapping} from "../../mappings/userMapping";
 
 const {brightCyan: dbColor, red: errorColor}: any = colors;
 const config = getConfig();
@@ -68,17 +69,31 @@ class UserController {
     }
 
     async create(req: Request, res: Response) {
-        const {body: {name, phone, email}, file} = req;
+        const {body: {name, phone, email, password}, file} = req;
+
+        if (!email || !password) {
+            return res
+                .status(400)
+                .json({message: "Please Input Username and Password"});
+        }
 
         try {
             file && await uploadFile(file);
 
+            // Hash The User's Password
+            const saltRounds = 10;
+            const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+            log.info(`hashedPassword: ${hashedPassword}`);
+
             const user = new User({
-                name: name || 'Default',
+                name,
                 phone,
                 avatar: file ? S3_PATH + file.originalname : '',
-                email: email || 'test@test.ua'
+                email: email,
+                password: hashedPassword,
             });
+
             if (user) {
                 const token = jwt.sign({sub: user._id}, JWT_SECRET as string, {expiresIn: '7d'});
                 log.info("Bearer token: ", token);
@@ -93,7 +108,7 @@ class UserController {
                     }
                     res.json({
                         message: `User with id ${doc._id} successfully saved to DB`,
-                        user,
+                        user: userMapping(user),
                         token,
                     })
                     log.info(`User with id ${doc._id} successfully saved to DB`);
@@ -107,6 +122,31 @@ class UserController {
         }
     }
 
+    async login(req: Request, res: Response) {
+        const {body: {email, password}} = req || {};
+        console.log('req: ', req);
+
+        // Check If The Input Fields are Valid
+        if (!email || !password) {
+            return res
+                .status(400)
+                .json({message: "Please Input Username and Password"});
+        }
+
+        // Check If User Exists In The Database
+        const user = await User.findOne({email});
+
+        if (!user) {
+            return res.status(401).json({message: "Invalid username or password"});
+        }
+
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        if (!passwordMatch) {
+            return res.status(401).json({message: "Invalid username or password"});
+        }
+
+
+    }
 
     async update(req: Request, res: Response) {
         try {

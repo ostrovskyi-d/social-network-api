@@ -54,7 +54,11 @@ app.delete('/clear-posts', Post._clearPostsCollection);
 
 app.get('/users', User.index);
 app.get('/auth/me', User.auth);
+// @ts-ignore
+app.post('/auth/login', User.login);
+
 app.get('/users/:id?/:my?', User.read);
+// @ts-ignore
 app.post('/users', upload.single('avatar'), User.create);
 app.put('/toggle-like-post', User.update);
 app.put('/user', upload.single('avatar'), User.update)

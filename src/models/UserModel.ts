@@ -6,13 +6,24 @@ interface User {
     name: string;
     phone?: string;
     avatar?: string;
-    posts?: Array<string>
+    posts?: Array<string>,
+    likedPosts?: Array<string>,
+    followedBy?: Array<string>,
+    following?: Array<string>,
+    country?: string,
+    job?: string,
+    email: string;
+    password: string;
+    contacts?: {
+        linkedIn?: string,
+    }
 }
 
 const userSchema = new Schema<User>(
     {
         name: {type: String, required: true,},
         email: {type: String, required: true, unique: true},
+        password: {type: String, required: true},
         country: {type: String},
         phone: {type: String},
         photos: {
