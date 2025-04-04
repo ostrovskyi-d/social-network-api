@@ -16,80 +16,81 @@ const JWT_SECRET = config.AUTH.JWT_SECRET;
 class UserController {
     async index(req: Request, res: Response) {
         try {
-            const perPage = Number(req.query['count']);
-            const reqPage = Number(req.query['page']);
-            const isFollowing = Boolean(req.query['following']);
-            const searchQuery = String(req.query['search']);
-            const usersTotal = await User.countDocuments({});
-            const totalPages = Math.ceil(usersTotal / perPage);
+            const perPage = Number(req.query['count']) || 10;  // Default perPage to 10 if not provided
+            const reqPage = Math.max(Number(req.query['page']) || 1, 1); // Ensure page is at least 1
+            const isFollowing = req.query['following'] === 'true';  // Convert to boolean
+            const searchQuery = req.query['search'] ? String(req.query['search']) : null;
 
-            let targetUsers: Array<Object> = [];
+            const filter: any = {};
 
+            // Apply search filter if searchQuery is present
             if (searchQuery) {
-                targetUsers = await User.find({name: searchQuery}) // not correct todo: make it WORK
-                    .skip(perPage * reqPage - perPage)
-                    .limit(perPage)
-                    .populate({path: 'following', select: 'name photos'})
-                    .sort({createdAt: -1})
-                    .exec();
-            } else {
-                targetUsers = await User
-                    .find()
-                    .skip(perPage * reqPage - perPage)
-                    .limit(perPage)
-                    .populate({path: 'following', select: 'name photos'})
-                    .sort({createdAt: -1})
-                    .exec();
+                filter.name = { $regex: searchQuery, $options: 'i' };
             }
 
-            log.info(`Users successfully found`);
+            // Apply following filter if isFollowing is true
+            if (isFollowing) {
+                filter.following = { $exists: true, $ne: [] };
+            }
 
-            res.json({
-                message: `Users successfully found`,
+            // Get total user count with applied filters
+            const usersTotal = await User.countDocuments(filter);
+            const totalPages = Math.ceil(usersTotal / perPage);
+
+            // Fetch users with applied filters and pagination
+            const users = await User.find(filter)
+                .skip((reqPage - 1) * perPage)
+                .limit(perPage)
+                .populate({ path: 'following', select: 'name photos' })
+                .sort({ createdAt: -1 })
+                .exec();
+
+            log.info(`Users successfully found. Total: ${users.length}`);
+
+            res.status(200).json({
+                message: "Users successfully found",
                 data: {
-                    users: targetUsers,
+                    users,
                     usersTotal,
                     totalPages,
                     perPage,
-                    currentPage: reqPage || 1,
+                    currentPage: reqPage
                 }
             });
-        } catch (err) {
-            log.info(`Error, can't find users: ${JSON.stringify(err)}`);
-            res.json({
-                resultCode: res.statusCode,
-                message: err
+        } catch (err: any) {
+            log.error(`Error fetching users: ${err.message}`);
+            res.status(500).json({
+                message: "Internal Server Error",
+                error: err.message
             });
-
         }
     }
 
     async create(req: Request, res: Response) {
-        const {body: {name, phone}, file} = req;
+        const {body: {name, phone, email}, file} = req;
 
         try {
             file && await uploadFile(file);
 
             const user = new User({
                 name: name || 'Default',
-                phone: phone || '000000000',
+                phone,
                 avatar: file ? S3_PATH + file.originalname : '',
+                email: email || 'test@test.ua'
             });
             if (user) {
                 const token = jwt.sign({sub: user._id}, JWT_SECRET as string, {expiresIn: '7d'});
-                log.info("Bearer token: ", token)
-                log.info("User ID: ", user._id)
+                log.info("Bearer token: ", token);
+                log.info("User ID: ", user._id);
 
                 // @ts-ignore
                 await user.save().then((doc, err) => {
                     if (err) {
                         return res.json({
-                            resultCode: res.statusCode,
                             message: err.message
                         })
                     }
                     res.json({
-                        resultCode: res.statusCode,
                         message: `User with id ${doc._id} successfully saved to DB`,
                         user,
                         token,
@@ -98,8 +99,7 @@ class UserController {
                 })
             }
         } catch (err) {
-            res.json({
-                resultCode: 409,
+            res.status(500).json({
                 message: `Error: User with name ${name} can't be created.`
             })
             log.error(`Error: User with name ${name} can't be created: ${JSON.stringify(err)}`);
@@ -146,27 +146,27 @@ class UserController {
                     await PostModel.deleteMany({'author': userId});
 
                     res.json({
-                        resultCode: res.statusCode,
                         message: `User with id ${userId} successfully deleted from DB`
                     })
                     log.info(dbColor(`User with id ${userId} successfully deleted from DB`))
                 } else {
                     res.json({
-                        resultCode: 409, message: `Error, can\'t delete User with id ${userId} from DB`
+                        message: `Error, can\'t delete User with id ${userId} from DB. Reason: user not found`
                     })
-                    log.info(errorColor(`Error, can\'t delete User with id ${userId} from DB`))
+                    log.info(errorColor(`Error, can\'t delete User with id ${userId} from DB. Reason: user not found`))
                 }
 
             })
         } catch (err) {
-
+            res.status(500).json(`Internal server error`)
             log.info(errorColor("Error: "), err)
         }
     }
 
     async read(req: Request, res: Response) {
         const getUser = async (req: any) => {
-            log.info(req)
+            log.info(`Request: `, req);
+
             if (req.params['my']) {
                 return await User.findOne({_id: req.params.id}, 'likedPosts')
                     .populate({
@@ -195,22 +195,18 @@ class UserController {
         try {
             let user = await getUser(req);
             log.info(user);
-            if (!user) {
-                res.json({
-                    resultCode: 409,
-                    message: `User with id ${req.params.id} not found in DB`
-                })
-                log.info(errorColor(`User with id ${req.params.id} not found in DB`))
-            } else {
-                res.json({
-                    resultCode: 201,
+            if(user) {
+                res.status(200).json({
                     message: `User with id ${req.params.id} found successfully in DB`,
                     user
                 })
                 log.info(dbColor(`User with id ${req.params.id} found successfully in DB`))
+            } else {
+                res.status(404).json({
+                    message: `User with id ${req.params.id} not found in DB`
+                })
+                log.info(errorColor(`User with id ${req.params.id} not found in DB`))
             }
-
-
         } catch (err) {
             log.info(errorColor("Error: "), err)
         }
