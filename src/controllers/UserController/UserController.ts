@@ -124,43 +124,52 @@ class UserController {
     }
 
     async login(req: Request, res: Response) {
-        const {body: {email, password}} = req || {};
-        console.log('email: ', email);
-        console.log( 'password: ', password);
+        try {
+            const {body: {email, password}} = req || {};
+            console.log('email: ', email);
+            console.log('password: ', password);
 
-        // Check If The Input Fields are Valid
-        if (!email || !password) {
-            return res
-                .status(400)
-                .json({message: "Please Input Username and Password"});
+            // Check If The Input Fields are Valid
+            if (!email || !password) {
+                return res
+                    .status(400)
+                    .json({message: "Please Input Username and Password"});
+            }
+
+            // Check If User Exists In The Database
+            const user = await User.findOne({email}).select('+password');
+
+            const {password: userStoredPassword, ...userRest}: any = user;
+
+            if (!user) {
+                return res.status(401).json({message: "Invalid username or password"});
+            }
+
+            console.log(user);
+
+            const passwordMatch = await bcrypt.compare(password, userStoredPassword);
+
+            console.log('passwordMatch: ', passwordMatch);
+
+
+            if (!passwordMatch) {
+                return res.status(401).json({message: "Invalid username or password"});
+            }
+
+            const token = jwt.sign({sub: user._id}, JWT_SECRET as string, {expiresIn: '7d'});
+            log.info("Bearer token: ", token);
+            log.info("User ID: ", user._id);
+
+            res.status(200).json({
+                userId: user._id,
+                token
+            });
+        } catch (err) {
+            res.status(500).json({
+                message: `Server internal error.`
+            })
+            log.error(err);
         }
-
-        // Check If User Exists In The Database
-        const user = await User.findOne({email});
-
-        if (!user) {
-            return res.status(401).json({message: "Invalid username or password"});
-        }
-
-        console.log(user);
-
-        const passwordMatch = await bcrypt.compare(password, user.password);
-
-        console.log('passwordMatch: ', passwordMatch);
-
-
-        if (!passwordMatch) {
-            return res.status(401).json({message: "Invalid username or password"});
-        }
-
-        const token = jwt.sign({sub: user._id}, JWT_SECRET as string, {expiresIn: '7d'});
-        log.info("Bearer token: ", token);
-        log.info("User ID: ", user._id);
-
-        res.status(200).json({
-            userId: user._id,
-            token
-        });
     }
 
     async update(req: Request, res: Response) {
