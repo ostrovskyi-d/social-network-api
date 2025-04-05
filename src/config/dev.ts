@@ -23,12 +23,12 @@ export default (env: any) => ({
         JWT_SECRET: env.JWT_SECRET,
         NO_AUTH_PATHS: [
             // '/',
-            // '/get-ads',
+            // '/get-posts',
             // '/users',
             '/add-new-user',
             // '/clear-users',
-            // '/clear-ads',
-            // '/like-ad',
+            // '/clear-posts',
+            // '/posts/like',
         ]
     },
 });

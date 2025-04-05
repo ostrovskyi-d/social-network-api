@@ -4,10 +4,11 @@ import PostModel from "../../models/PostModel";
 import {getUserIdByToken} from "../../services/authService";
 import {getConfig} from "../../config";
 import {uploadFile} from "../../services/uploadService";
-import {getPostsFromFilters, getPagedAdsHandler, saveNewAdToDatabase} from "./PostsHandlers";
-import {updateAdOwner} from "../UserController/UserHandlers";
+import {getPostsFromFilters, getPagedPostsHandler, saveNewPostToDatabase} from "./PostsHandlers";
+import {updatePostOwner} from "../UserController/UserHandlers";
 import {Request, Response} from 'express';
 import log from "../../heplers/logger";
+import User from "../../models/UserModel";
 
 const {
     brightCyan: dbColor,
@@ -25,18 +26,18 @@ class PostsController {
         const reqPage = Number(req.query['page']);
 
         if (!req.query['page']) {
-            const result = await getPagedAdsHandler();
+            const result = await getPagedPostsHandler();
             log.info(`response: ${JSON.stringify(result)}`);
 
             res.json(result);
         } else {
-            const result = await getPagedAdsHandler(reqPage);
+            const result = await getPagedPostsHandler(reqPage);
             log.info(`response: ${JSON.stringify(result)}`);
 
             if (!result) {
                 res.status(404).json({
                     message: `Error. Can't handle posts at page №: ${+req.query['page']}`,
-                    ads: result
+                    posts: result
                 })
             } else {
                 res.json(result)
@@ -47,18 +48,17 @@ class PostsController {
     async create(req: Request, res: Response) {
         log.info('-- PostsController method ".create" called --');
 
-        const {file, body, query, headers: {authorization: auth}} = req || {};
+        const {file, body, query, headers: {authorization}} = req || {};
         const {
-            name,
-            description,
-            categoryId,
-            subCategoryId,
-            selectedCategories,
-            selectedSubCategories
+            title,
+            // categoryId,
+            // subCategoryId,
+            // selectedCategories,
+            // selectedSubCategories
         } = body || {};
-        const {author}: any = await getUserIdByToken(auth);
-        const perPage = Number(PER_PAGE);
-        const reqPage = Number(query['page']) || 1;
+        const {sub: author}: any = await getUserIdByToken(authorization);
+        // const perPage = Number(PER_PAGE);
+        // const reqPage = Number(query['page']) || 1;
         // const adsTotalPromise = await PostModel.countDocuments({});
         // const adsTotal = await adsTotalPromise;
         // const totalPages = Math.ceil(adsTotal / perPage);
@@ -66,61 +66,124 @@ class PostsController {
         file && await uploadFile(file);
 
         // Create Ad
-        const ad = new PostModel({
-            name: name || 'Оголошення',
+        const post = new PostModel({
+            title: title,
             img: file ? S3_PATH + file.originalname : '',
-            description: description || 'test post description11',
             author: author,
-            categoryId: categoryId || '1',
-            subCategoryId: subCategoryId || '1'
+            // categoryId: categoryId || '1',
+            // subCategoryId: subCategoryId || '1'
         });
 
+        const savedPost = await saveNewPostToDatabase(post);
+
+        if (!!savedPost) {
+            // Update user with ref to this ad
+            await updatePostOwner(post, author);
+            res.json(savedPost)
+        }
         // Return ads
         // return ads that matches selected categories
-        if (selectedCategories || selectedSubCategories) {
-            if (!selectedCategories.length && !selectedSubCategories.length) {
-                if (!reqPage) {
-                    const result = await getPagedAdsHandler();
-                    res.json(result);
-                } else {
-                    const result = await getPagedAdsHandler(reqPage);
+        // if (selectedCategories || selectedSubCategories) {
+        //     if (!selectedCategories.length && !selectedSubCategories.length) {
+        //         if (!reqPage) {
+        //             const result = await getPagedPostsHandler();
+        //             res.json(result);
+        //         } else {
+        //             const result = await getPagedPostsHandler(reqPage);
+        //
+        //             if (!result) {
+        //                 res.status(404).json({
+        //                     message: `Error. Can't handle posts at page №: ${reqPage}`,
+        //                     ads: result
+        //                 })
+        //             } else {
+        //                 res.json(result)
+        //             }
+        //         }
+        //     } else {
+        //
+        //         const {totalPages, posts, selectedAdsCount} = await getPostsFromFilters({
+        //             selectedCategories,
+        //             selectedSubCategories,
+        //             perPage,
+        //             reqPage
+        //         });
+        //
+        //         // log.info(dbColor(result));
+        //         res.json({
+        //             message: `Ads successfully found`,
+        //             ads: posts,
+        //             adsTotal: selectedAdsCount,
+        //             totalPages: totalPages,
+        //             perPage,
+        //             currentPage: reqPage,
+        //         });
+        //     }
+        // } else {
+        //     // Save new ad
+        //     const savedAd = await saveNewPostToDatabase(ad);
+        //     if (!!savedAd) {
+        //         // Update user with ref to this ad
+        //         await updateAdOwner(ad, author);
+        //         res.json(savedAd)
+        //     }
+        // }
+    }
 
-                    if (!result) {
-                        res.status(404).json({
-                            message: `Error. Can't handle posts at page №: ${reqPage}`,
-                            ads: result
-                        })
-                    } else {
-                        res.json(result)
-                    }
-                }
+
+    async like(req: Request, res: Response) {
+        console.log('req.body: ', req.body);
+
+        const { postId } = req.body;
+
+        try {
+            // Extract user ID from token
+            const { sub: userId }: any = await getUserIdByToken(req.headers.authorization);
+
+            // Find user
+            const user: any = await User.findById(userId);
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            // Optionally, check if the post exists
+            const post = await PostModel.findById(postId);
+            if (!post) {
+                return res.status(404).json({ message: 'Post not found' });
+            }
+
+            const hasLiked = post.likes.users.includes(userId);
+
+            if (hasLiked) {
+                // Remove userId from post.likes.users and postId from user.likedPosts
+                await Promise.all([
+                    PostModel.findByIdAndUpdate(postId, {
+                        $pull: { "likes.users": userId }
+                    }),
+                    User.findByIdAndUpdate(userId, {
+                        $pull: { likedPosts: postId }
+                    })
+                ]);
+
+                return res.status(200).json({ message: 'Post unliked successfully' });
+
             } else {
+                // Add userId to post.likes.users and postId to user.likedPosts
+                await Promise.all([
+                    PostModel.findByIdAndUpdate(postId, {
+                        $addToSet: { "likes.users": userId }
+                    }),
+                    User.findByIdAndUpdate(userId, {
+                        $addToSet: { likedPosts: postId }
+                    })
+                ]);
 
-                const {totalPages, posts, selectedAdsCount} = await getPostsFromFilters({
-                    selectedCategories,
-                    selectedSubCategories,
-                    perPage,
-                    reqPage
-                });
+                return res.status(200).json({ message: 'Post liked successfully' });
+            }
 
-                // log.info(dbColor(result));
-                res.json({
-                    message: `Ads successfully found`,
-                    ads: posts,
-                    adsTotal: selectedAdsCount,
-                    totalPages: totalPages,
-                    perPage,
-                    currentPage: reqPage,
-                });
-            }
-        } else {
-            // Save new ad
-            const savedAd = await saveNewAdToDatabase(ad);
-            if (!!savedAd) {
-                // Update user with ref to this ad
-                await updateAdOwner(ad, author);
-                res.json(savedAd)
-            }
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Internal server error' });
         }
     }
 
@@ -129,7 +192,7 @@ class PostsController {
 
         await PostModel.findOne({_id: req.params.id}).populate({
             path: 'author',
-            select: '-likedAds'
+            select: '-likedPosts'
         }).then((ad: any) => {
             if (!ad) {
                 res.json({

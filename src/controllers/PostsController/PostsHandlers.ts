@@ -27,28 +27,28 @@ const getPostsFromFilters = async ({
             ? {$and: commonFilterQuery}
             : {$or: commonFilterQuery};
 
-    const selectedAdsCount = await PostModel.countDocuments(filterCondition);
+    const selectedPostsCount = await PostModel.countDocuments(filterCondition);
 
     const posts = await PostModel
         .find(filterCondition)
         .skip(perPage * reqPage - perPage)
         .limit(+perPage)
-        .populate({path: 'author', select: '-likedAds'})
+        .populate({path: 'author', select: '-likedPosts'})
         .sort({createdAt: -1})
         .exec();
 
     const result = {
         posts: posts,
-        totalPages: Math.ceil(selectedAdsCount / perPage),
-        selectedAdsCount: selectedAdsCount,
+        totalPages: Math.ceil(selectedPostsCount / perPage),
+        selectedAdsCount: selectedPostsCount,
     };
 
-    log.info("selectedPostsCount: ", selectedAdsCount);
+    log.info("selectedPostsCount: ", selectedPostsCount);
     log.info("perPage: ", perPage);
     log.info("totalPages: ", result.totalPages);
     return result;
 }
-const getPagedAdsHandler = async (pageQuery: any = 1) => {
+const getPagedPostsHandler = async (pageQuery: any = 1) => {
     try {
         const perPage = +PER_PAGE;
         const reqPage = pageQuery || 1;
@@ -56,7 +56,7 @@ const getPagedAdsHandler = async (pageQuery: any = 1) => {
         const totalPages = Math.ceil(postsTotal / perPage);
         log.info(pageQuery);
         log.info(perPage * reqPage - perPage);
-        const pagedAds = await PostModel.find({})
+        const pagedPosts = await PostModel.find({})
             .skip(perPage * reqPage - perPage)
             .limit(+perPage)
             .populate({path: 'author', select: '-likedPosts'})
@@ -65,8 +65,8 @@ const getPagedAdsHandler = async (pageQuery: any = 1) => {
 
         return {
             message: `Posts successfully found`,
-            ads: pagedAds,
-            adsTotal: postsTotal,
+            posts: pagedPosts,
+            postsTotal: postsTotal,
             totalPages,
             perPage,
             currentPage: reqPage
@@ -81,7 +81,7 @@ const getPagedAdsHandler = async (pageQuery: any = 1) => {
 }
 
 
-const saveNewAdToDatabase = async (post: any) => {
+const saveNewPostToDatabase = async (post: any) => {
     try {
         const savedPost: any = await post.save();
         if (savedPost) {
@@ -100,7 +100,7 @@ const saveNewAdToDatabase = async (post: any) => {
 }
 
 export {
-    getPagedAdsHandler,
-    saveNewAdToDatabase,
+    getPagedPostsHandler,
+    saveNewPostToDatabase,
     getPostsFromFilters,
 }

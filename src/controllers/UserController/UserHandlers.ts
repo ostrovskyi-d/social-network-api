@@ -1,19 +1,19 @@
 import User from "../../models/UserModel";
 
-const updateAdOwner = async (ad: any, adOwner: any) => {
+const updatePostOwner = async (post: any, postOwner: any) => {
     try {
         const user = await User.findOneAndUpdate(
-            {_id: adOwner},
-            {"$addToSet": {posts: ad}}
+            {_id: postOwner},
+            {"$addToSet": {posts: post}}
         );
 
         if (!user) {
             return {
-                message: `Requested author doesn\'t exist {_id: ${adOwner}}... You shall not pass!`
+                message: `Requested author doesn\'t exist {_id: ${postOwner}}... You shall not pass!`
             }
         } else {
             return {
-                message: `Requested author (id: ${adOwner}) successfully updated with a new ad (id: ${ad._id})`,
+                message: `Requested author (id: ${postOwner}) successfully updated with a new ad (id: ${post._id})`,
             }
         }
     } catch (err) {
@@ -23,5 +23,5 @@ const updateAdOwner = async (ad: any, adOwner: any) => {
     }
 }
 export {
-    updateAdOwner
+    updatePostOwner
 }

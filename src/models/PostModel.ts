@@ -1,13 +1,13 @@
 import mongoose from 'mongoose';
 import moment from "moment";
 
-const getLocalizedDate = () => moment().locale('uk');
+const getLocalizedDate = () => moment().locale('us');
 
 const Schema = mongoose.Schema;
 
 interface Post {
     img?: string;
-    description?: string;
+    title?: string;
     author: Object;
     date: string;
     likes: {
@@ -18,7 +18,7 @@ interface Post {
 
 const postSchema = new Schema<Post>({
         img: {type: String, default: ''},
-        description: {type: String},
+        title: {type: String},
         author: {type: Schema.Types.ObjectId, ref: 'User',},
         date: {type: String, default: getLocalizedDate().format('DD MMMM, HH:mm')},
         likes: {

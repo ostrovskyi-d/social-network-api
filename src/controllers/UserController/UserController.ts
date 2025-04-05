@@ -167,9 +167,9 @@ class UserController {
     async update(req: Request, res: Response) {
         try {
             const {body, params, headers, file} = req;
-            const {likedAds: likedPosts, name, phone} = body;
+            const {likedPosts, name, phone} = body;
 
-            const authorId = await getUserIdByToken(headers.authorization);
+            const {sub: authorId}: any = await getUserIdByToken(headers.authorization);
 
             file && await uploadFile(file);
             const userId = params?.id || authorId;
@@ -184,7 +184,7 @@ class UserController {
             const updatedUser: any = await User.findById(userId).exec();
 
             if (likedPosts) {
-                res.json({likedAds: updatedUser['likedAds']})
+                res.json({likedPosts: updatedUser['likedPosts']})
             } else {
                 res.json(updatedUser)
             }

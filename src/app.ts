@@ -47,6 +47,8 @@ app.get('/', (req, res) => {
 
 app.get('/posts?:page', Post.index);
 app.get('/posts/:id', Post.read);
+// @ts-ignore
+app.put('/posts/like', Post.like);
 app.post('/posts', upload.single('img'), Post.create);
 app.put('/posts/:id', upload.single('img'), Post.update);
 app.delete('/posts/:id', Post.delete);
@@ -60,8 +62,8 @@ app.post('/auth/login', User.login);
 app.get('/users/:id?/:my?', User.read);
 // @ts-ignore
 app.post('/users', upload.single('avatar'), User.create);
-app.put('/toggle-like-post', User.update);
-app.put('/user', upload.single('avatar'), User.update)
+// @ts-ignore
+app.put('/users', upload.single('avatar'), User.update)
 app.delete('/users', User.delete);
 app.delete('/clear-users', User._clearUsersCollection);
 
