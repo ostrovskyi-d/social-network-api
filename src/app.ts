@@ -82,6 +82,8 @@ const start = async () => {
     const PORT = config.SERVER.PORT;
     const MONGO_URI = config.MONGO.MONGO_URI;
 
+    console.log('MONGO_URI: ', MONGO_URI);
+
     await connectToDB(MONGO_URI);
 
     httpServer.listen(PORT, () => {

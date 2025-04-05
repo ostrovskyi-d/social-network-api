@@ -9,6 +9,7 @@ import {Request, Response} from 'express';
 import log from "../../heplers/logger";
 import bcrypt from 'bcrypt';
 import {userMapping} from "../../mappings/userMapping";
+import {expressjwt} from "express-jwt";
 
 const {brightCyan: dbColor, red: errorColor}: any = colors;
 const config = getConfig();
@@ -124,7 +125,8 @@ class UserController {
 
     async login(req: Request, res: Response) {
         const {body: {email, password}} = req || {};
-        console.log('req: ', req);
+        console.log('email: ', email);
+        console.log( 'password: ', password);
 
         // Check If The Input Fields are Valid
         if (!email || !password) {
@@ -140,12 +142,25 @@ class UserController {
             return res.status(401).json({message: "Invalid username or password"});
         }
 
+        console.log(user);
+
         const passwordMatch = await bcrypt.compare(password, user.password);
+
+        console.log('passwordMatch: ', passwordMatch);
+
+
         if (!passwordMatch) {
             return res.status(401).json({message: "Invalid username or password"});
         }
 
+        const token = jwt.sign({sub: user._id}, JWT_SECRET as string, {expiresIn: '7d'});
+        log.info("Bearer token: ", token);
+        log.info("User ID: ", user._id);
 
+        res.status(200).json({
+            userId: user._id,
+            token
+        });
     }
 
     async update(req: Request, res: Response) {
