@@ -9,7 +9,6 @@ import {Request, Response} from 'express';
 import log from "../../heplers/logger";
 import bcrypt from 'bcrypt';
 import {userMapping} from "../../mappings/userMapping";
-import {expressjwt} from "express-jwt";
 
 const {brightCyan: dbColor, red: errorColor}: any = colors;
 const config = getConfig();
@@ -126,8 +125,6 @@ class UserController {
     async login(req: Request, res: Response) {
         try {
             const {body: {email, password}} = req || {};
-            console.log('email: ', email);
-            console.log('password: ', password);
 
             // Check If The Input Fields are Valid
             if (!email || !password) {
@@ -139,18 +136,13 @@ class UserController {
             // Check If User Exists In The Database
             const user = await User.findOne({email}).select('+password');
 
-            const {password: userStoredPassword, ...userRest}: any = user;
+            const {password: userStoredPassword}: any = user;
 
             if (!user) {
                 return res.status(401).json({message: "Invalid username or password"});
             }
 
-            console.log(user);
-
             const passwordMatch = await bcrypt.compare(password, userStoredPassword);
-
-            console.log('passwordMatch: ', passwordMatch);
-
 
             if (!passwordMatch) {
                 return res.status(401).json({message: "Invalid username or password"});
