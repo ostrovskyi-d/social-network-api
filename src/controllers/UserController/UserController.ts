@@ -17,6 +17,8 @@ const JWT_SECRET = config.AUTH.JWT_SECRET;
 
 class UserController {
     async index(req: Request, res: Response) {
+        log.info('-- UserController method ".index" called --');
+
         try {
             const perPage = Number(req.query['count']) || 10;  // Default perPage to 10 if not provided
             const reqPage = Math.max(Number(req.query['page']) || 1, 1); // Ensure page is at least 1
@@ -69,6 +71,8 @@ class UserController {
     }
 
     async create(req: Request, res: Response) {
+        log.info('-- UserController method ".create" called --');
+
         const {body: {name, phone, email, password}, file} = req;
 
         if (!email || !password) {
@@ -123,6 +127,8 @@ class UserController {
     }
 
     async login(req: Request, res: Response) {
+        log.info('-- UserController method ".login" called --');
+
         try {
             const {body: {email, password}} = req || {};
 
@@ -165,36 +171,59 @@ class UserController {
     }
 
     async update(req: Request, res: Response) {
+        log.info('-- UserController method ".update" called --');
+
         try {
-            const {body, params, headers, file} = req;
-            const {likedPosts, name, phone} = body;
+            const {body, headers, files} = req;
 
-            const {sub: authorId}: any = await getUserIdByToken(headers.authorization);
+            const {sub: tokenUserId}: any = await getUserIdByToken(headers.authorization);
+            const userId = tokenUserId;
 
-            file && await uploadFile(file);
-            const userId = params?.id || authorId;
+            // Files will be available under files.avatar[0], files.background[0]
+            const avatarFile = (files as any)?.avatar?.[0];
+            const backgroundFile = (files as any)?.background?.[0];
 
-            await User.findByIdAndUpdate(userId, {
-                $set: {
-                    ...body,
-                    avatar: file ? S3_PATH + file.originalname : ''
-                }
-            });
-            await User.updateOne({_id: userId}, {$set: {...body}});
-            const updatedUser: any = await User.findById(userId).exec();
+            let avatarLink = '';
+            let backgroundLink = '';
 
-            if (likedPosts) {
-                res.json({likedPosts: updatedUser['likedPosts']})
-            } else {
-                res.json(updatedUser)
+            if (avatarFile) {
+                const uploaded = await uploadFile(avatarFile);
+                avatarLink = uploaded?.Location || `${S3_PATH}${avatarFile.originalname}`;
+                log.info(`Avatar file uploaded: ${avatarLink}`);
             }
 
+            if (backgroundFile) {
+                const uploaded = await uploadFile(backgroundFile);
+                backgroundLink = uploaded?.Location || `${S3_PATH}${backgroundFile.originalname}`;
+                log.info(`Background file uploaded: ${avatarLink}`);
+            }
+
+            const updateData: any = {
+                ...body
+            };
+
+            if (avatarLink || backgroundLink) {
+                updateData.photos = {};
+                if (avatarLink) updateData.photos.avatar = avatarLink;
+                if (backgroundLink) updateData.photos.background = backgroundLink;
+            }
+
+            await User.findByIdAndUpdate(userId, {$set: updateData});
+            const updatedUser = await User.findById(userId);
+
+            res.status(200).json({
+                message: `User successfully updated`,
+                data: {user: updatedUser}
+            });
         } catch (err: any) {
             log.error(err);
+            res.status(500).json({message: `Server internal error.`})
         }
     }
 
     async auth(req: Request, res: Response) {
+        log.info('-- UserController method ".auth" called --');
+
         try {
             const {sub: userId}: any = await getUserIdByToken(req.headers.authorization);
 
@@ -206,11 +235,14 @@ class UserController {
                 email: email,
             });
         } catch (err) {
-            res.status(500).json(err);
+            log.error(err);
+            res.status(500).json({message: `Server internal error.`});
         }
     }
 
     async delete(req: Request, res: Response) {
+        log.info('-- UserController method ".delete" called --');
+
         try {
             const {author: userId}: any = await getUserIdByToken(req.headers.authorization)
 
@@ -236,38 +268,53 @@ class UserController {
         }
     }
 
-    async read(req: Request, res: Response) {
-        const getUser = async (req: any) => {
-            log.info(`Request: `, req);
-
-            if (req.params['my']) {
-                return await User.findOne({_id: req.params.id}, 'likedPosts')
-                    .populate({
-                        path: 'likedPosts',
-                        model: PostModel,
-                        populate: {
-                            path: 'author',
-                            select: 'name phone'
-                        }
-                    })
-                    .exec();
-            } else {
-                return await User.findOne({_id: req.params.id})
-                    .populate({
-                        path: 'posts',
-                        model: PostModel,
-                        populate: {
-                            path: 'author',
-                            select: 'name phone',
-                        }
-                    })
-                    .populate('likedPosts')
-                    .exec();
-            }
-        }
+    async readById(req: Request, res: Response) {
+        log.info('-- UserController method ".readById" called --');
         try {
-            let user = await getUser(req);
-            log.info(user);
+            const user = await User.findById(req.params.id)
+                .populate({
+                    path: 'posts',
+                    model: PostModel,
+                    populate: {
+                        path: 'author',
+                        select: 'name phone',
+                    }
+                })
+                .populate('likedPosts')
+                .exec();
+
+            log.info(`User with ID: ${req.params.id} successfully found in DB`);
+
+            res.status(200).json({
+                message: 'User successfully found',
+                data: {
+                    user
+                }
+            })
+        } catch (err) {
+            log.error(err);
+            res.status(500).json({message: `Server internal error.`})
+        }
+    }
+
+    async readMy(req: Request, res: Response) {
+        log.info('-- UserController method ".readMy" called --');
+        try {
+            const {sub: tokenUserId}: any = getUserIdByToken(req.headers.authorization);
+
+            console.log('token ID: ', tokenUserId);
+
+            const user = await User.findOne({_id: tokenUserId}, 'likedPosts')
+                .populate({
+                    path: 'likedPosts',
+                    model: PostModel,
+                    populate: {
+                        path: 'author',
+                        select: 'name phone'
+                    }
+                })
+                .exec();
+
             if (user) {
                 res.status(200).json({
                     message: `User with id ${req.params.id} found successfully in DB`,
@@ -281,7 +328,8 @@ class UserController {
                 log.info(errorColor(`User with id ${req.params.id} not found in DB`))
             }
         } catch (err) {
-            log.info(errorColor("Error: "), err)
+            res.status(500).json({message: 'Internal server error'})
+            log.error(err)
         }
     }
 

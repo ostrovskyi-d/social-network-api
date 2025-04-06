@@ -1,6 +1,6 @@
 import {getConfig} from './config';
 import colors from 'colors';
-import express, {Request, Response} from 'express';
+import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import multer from "multer";
@@ -14,7 +14,7 @@ import ChatController from "./controllers/ChatController/ChatController";
 import jwt from './services/authService';
 import connectToDB from "./services/dbConnectService";
 
-const {brightGreen: serverColor}: any = colors;
+const {brightGreen: apiColor}: any = colors;
 const config = getConfig();
 const app = express();
 const storage = multer.memoryStorage();
@@ -35,51 +35,63 @@ app.use(cors());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 config.AUTH.isActive && app.use(jwt());
-app.use(express.static('./uploads'));
-app.use('/uploads', express.static('./uploads'));
+// app.use(express.static('./uploads'));
+// app.use('/uploads', express.static('./uploads'));
 
-app.get('/', (req, res) => {
-    res.json({
-        message: 'Welcome to Social Network API!',
-    })
-});
+// app.get('/', (req, res) => {
+//     res.json({
+//         message: 'Welcome to Social Network API!',
+//     })
+// });
 
-
+// IMPORTANT: keep order of routes
+// get posts list paginated
 app.get('/posts?:page', Post.index);
+// get post by id
 app.get('/posts/:id', Post.read);
-// @ts-ignore
-app.put('/posts/like', Post.like);
+// create new post
 app.post('/posts', upload.single('img'), Post.create);
+// @ts-ignore
+// post like-dislike - toggle logic
+app.put('/posts/like', Post.like);
+// update post by id
 app.put('/posts/:id', upload.single('img'), Post.update);
+// delete post by id
 app.delete('/posts/:id', Post.delete);
+// DELETE ALL POSTS
 app.delete('/clear-posts', Post._clearPostsCollection);
 
+// get list of users (paginated)
 app.get('/users', User.index);
+// get current user brief data (from token)
 app.get('/auth/me', User.auth);
+// authorize user using email and password, returns token
 // @ts-ignore
 app.post('/auth/login', User.login);
+// get token owner profile
+app.get('/profile/me', User.readMy);
+// get user profile by id
+app.get('/profile/:id', User.readById);
+// update profile
+app.put('/profile', upload.fields([
+    {name: 'avatar', maxCount: 1},
+    {name: 'background', maxCount: 1}
+]), User.update);
 
-app.get('/users/:id?/:my?', User.read);
 // @ts-ignore
+// create user - kind of registration logic
 app.post('/users', upload.single('avatar'), User.create);
-// @ts-ignore
-app.put('/users', upload.single('avatar'), User.update)
+// delete user
 app.delete('/users', User.delete);
+// DELETE ALL USER
 app.delete('/clear-users', User._clearUsersCollection);
 
+// chat functionality (in development)
 app.post('/conversation', Chat.initConversation);
 app.get('/conversation/:userId', Chat.getUserConversation);
 
-app.post('/upload', (req: Request, res: Response) => {
-    if (req.files) {
-        res.send('Successfully uploaded ' + req.files.length + ' files!')
-    } else {
-        res.send('No files selected')
-    }
-})
-
 const start = async () => {
-    log.info(serverColor('--app Server is staring...'))
+    log.info(apiColor('--app Server is staring...'))
 
     const PORT = config.SERVER.PORT;
     const MONGO_URI = config.MONGO.MONGO_URI;
@@ -89,7 +101,7 @@ const start = async () => {
     await connectToDB(MONGO_URI);
 
     httpServer.listen(PORT, () => {
-        log.info(serverColor(`--app Server listening at http://localhost:${PORT}`))
+        log.info(apiColor(`--app Server listening at http://localhost:${PORT}`))
     })
 }
 

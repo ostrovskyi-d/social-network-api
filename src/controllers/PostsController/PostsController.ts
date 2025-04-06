@@ -15,7 +15,7 @@ const {
     red: errorColor,
 }: any = colors;
 
-const {PER_PAGE, S3: {S3_PATH}} = getConfig();
+const {S3: {S3_PATH}} = getConfig();
 
 class PostsController {
 
@@ -48,20 +48,9 @@ class PostsController {
     async create(req: Request, res: Response) {
         log.info('-- PostsController method ".create" called --');
 
-        const {file, body, query, headers: {authorization}} = req || {};
-        const {
-            title,
-            // categoryId,
-            // subCategoryId,
-            // selectedCategories,
-            // selectedSubCategories
-        } = body || {};
+        const {file, body, headers: {authorization}} = req || {};
+        const {title} = body || {};
         const {sub: author}: any = await getUserIdByToken(authorization);
-        // const perPage = Number(PER_PAGE);
-        // const reqPage = Number(query['page']) || 1;
-        // const adsTotalPromise = await PostModel.countDocuments({});
-        // const adsTotal = await adsTotalPromise;
-        // const totalPages = Math.ceil(adsTotal / perPage);
 
         file && await uploadFile(file);
 
@@ -70,8 +59,6 @@ class PostsController {
             title: title,
             img: file ? S3_PATH + file.originalname : '',
             author: author,
-            // categoryId: categoryId || '1',
-            // subCategoryId: subCategoryId || '1'
         });
 
         const savedPost = await saveNewPostToDatabase(post);
@@ -81,109 +68,49 @@ class PostsController {
             await updatePostOwner(post, author);
             res.json(savedPost)
         }
-        // Return ads
-        // return ads that matches selected categories
-        // if (selectedCategories || selectedSubCategories) {
-        //     if (!selectedCategories.length && !selectedSubCategories.length) {
-        //         if (!reqPage) {
-        //             const result = await getPagedPostsHandler();
-        //             res.json(result);
-        //         } else {
-        //             const result = await getPagedPostsHandler(reqPage);
-        //
-        //             if (!result) {
-        //                 res.status(404).json({
-        //                     message: `Error. Can't handle posts at page №: ${reqPage}`,
-        //                     ads: result
-        //                 })
-        //             } else {
-        //                 res.json(result)
-        //             }
-        //         }
-        //     } else {
-        //
-        //         const {totalPages, posts, selectedAdsCount} = await getPostsFromFilters({
-        //             selectedCategories,
-        //             selectedSubCategories,
-        //             perPage,
-        //             reqPage
-        //         });
-        //
-        //         // log.info(dbColor(result));
-        //         res.json({
-        //             message: `Ads successfully found`,
-        //             ads: posts,
-        //             adsTotal: selectedAdsCount,
-        //             totalPages: totalPages,
-        //             perPage,
-        //             currentPage: reqPage,
-        //         });
-        //     }
-        // } else {
-        //     // Save new ad
-        //     const savedAd = await saveNewPostToDatabase(ad);
-        //     if (!!savedAd) {
-        //         // Update user with ref to this ad
-        //         await updateAdOwner(ad, author);
-        //         res.json(savedAd)
-        //     }
-        // }
     }
 
 
     async like(req: Request, res: Response) {
-        console.log('req.body: ', req.body);
+        log.info('-- PostsController method "like" called --');
 
-        const { postId } = req.body;
+        const {postId} = req.body;
 
         try {
             // Extract user ID from token
-            const { sub: userId }: any = await getUserIdByToken(req.headers.authorization);
+            const {sub: userId}: any = await getUserIdByToken(req.headers.authorization);
 
             // Find user
             const user: any = await User.findById(userId);
             if (!user) {
-                return res.status(404).json({ message: 'User not found' });
+                log.info('User does not exist');
+                return res.status(404).json({message: 'User not found'});
             }
 
             // Optionally, check if the post exists
             const post = await PostModel.findById(postId);
             if (!post) {
-                return res.status(404).json({ message: 'Post not found' });
+                log.info('Post does not exist');
+                return res.status(404).json({message: 'Post not found'});
             }
 
             const hasLiked = post.likes.users.includes(userId);
 
-            if (hasLiked) {
-                // Remove userId from post.likes.users and postId from user.likedPosts
-                await Promise.all([
-                    PostModel.findByIdAndUpdate(postId, {
-                        $pull: { "likes.users": userId }
-                    }),
-                    User.findByIdAndUpdate(userId, {
-                        $pull: { likedPosts: postId }
-                    })
-                ]);
+            await Promise.all([
+                PostModel.findByIdAndUpdate(postId,
+                    hasLiked ? {$pull: {"likes.users": userId}} : {$addToSet: {"likes.users": userId}}
+                ),
+                User.findByIdAndUpdate(userId,
+                    hasLiked ? {$pull: {likedPosts: postId}} : {$addToSet: {likedPosts: postId}}
+                )
+            ]);
 
-                return res.status(200).json({ message: 'Post unliked successfully' });
-
-            } else {
-                // Add userId to post.likes.users and postId to user.likedPosts
-                await Promise.all([
-                    PostModel.findByIdAndUpdate(postId, {
-                        $addToSet: { "likes.users": userId }
-                    }),
-                    User.findByIdAndUpdate(userId, {
-                        $addToSet: { likedPosts: postId }
-                    })
-                ]);
-
-                return res.status(200).json({ message: 'Post liked successfully' });
-            }
-
+            return res.status(200).json({
+                message: hasLiked ? 'Post unliked successfully' : 'Post liked successfully'
+            });
         } catch (error) {
             console.error(error);
-            return res.status(500).json({ message: 'Internal server error' });
+            return res.status(500).json({message: 'Internal server error'});
         }
     }
 
