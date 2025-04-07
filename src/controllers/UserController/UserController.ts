@@ -1,7 +1,7 @@
 import {getConfig} from "../../config";
 import User from '../../models/UserModel';
 import colors from "colors";
-import jwt from 'jsonwebtoken';
+import jwt, {JsonWebTokenError} from 'jsonwebtoken';
 import {getUserIdByToken} from "../../services/authService";
 import PostModel from "../../models/PostModel";
 import {uploadFile} from "../../services/uploadService";
@@ -249,6 +249,7 @@ class UserController {
     async auth(req: Request, res: Response) {
         log.info('-- UserController method ".auth" called --');
 
+
         try {
             const {sub: userId}: any = await getUserIdByToken(req.headers.authorization);
 
@@ -264,7 +265,7 @@ class UserController {
             });
         } catch (err: any) {
             log.error(err);
-            if (err.type === 'JsonWebTokenError') {
+            if (err instanceof JsonWebTokenError) {
                 res.status(401).json({
                     errorType: errorTypes.Unauthorized,
                     message: err.message
