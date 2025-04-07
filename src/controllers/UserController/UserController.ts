@@ -262,12 +262,19 @@ class UserController {
                     email: email,
                 }
             });
-        } catch (err) {
+        } catch (err: any) {
             log.error(err);
-            res.status(500).json({
-                errorType: errorTypes.ServerError,
-                message: `Server internal error.`
-            });
+            if (err.type === 'JsonWebTokenError') {
+                res.status(401).json({
+                    errorType: errorTypes.Unauthorized,
+                    message: err.message
+                })
+            } else {
+                res.status(500).json({
+                    errorType: errorTypes.ServerError,
+                    message: `Server internal error.`
+                });
+            }
         }
     }
 
