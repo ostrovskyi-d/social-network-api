@@ -66,6 +66,9 @@ app.get('/users', User.index);
 // get current user brief data (from token)
 app.get('/auth/me', User.auth);
 // authorize user using email and password, returns token
+// create user - kind of registration logic
+// @ts-ignore
+app.post('/auth/register', upload.single('avatar'), User.create);
 // @ts-ignore
 app.post('/auth/login', User.login);
 // get token owner profile
@@ -78,9 +81,6 @@ app.put('/profile', upload.fields([
     {name: 'background', maxCount: 1}
 ]), User.update);
 
-// @ts-ignore
-// create user - kind of registration logic
-app.post('/users', upload.single('avatar'), User.create);
 // delete user
 app.delete('/users', User.delete);
 // DELETE ALL USER
