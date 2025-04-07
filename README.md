@@ -1,2 +1,2 @@
-# gebo-back
-Gebo app backend API
+# social-network-api
+Social Network API (Express, Mongoose, TS)
