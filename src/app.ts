@@ -42,6 +42,7 @@ app.get('/', (req, res) => {
     })
 });
 
+
 // IMPORTANT: keep order of routes
 // get posts list paginated
 app.get('/posts?:page', Post.index);
