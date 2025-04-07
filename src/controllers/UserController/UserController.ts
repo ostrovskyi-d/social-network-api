@@ -50,10 +50,10 @@ class UserController {
                 .sort({createdAt: -1})
                 .exec();
 
-            log.info(`Users successfully found. Total: ${users.length}`);
+            log.info(`Users are successfully found. Total: ${users.length}`);
 
             res.status(200).json({
-                message: "Users successfully found",
+                message: "Users are successfully found",
                 data: {
                     users,
                     usersTotal,
@@ -117,13 +117,13 @@ class UserController {
                         })
                     }
                     res.json({
-                        message: `User with id ${doc._id} successfully saved to DB`,
+                        message: `User with id ${doc._id} is successfully saved to DB`,
                         data: {
                             token,
                             user: userMapping(user),
                         }
                     })
-                    log.info(`User with id ${doc._id} successfully saved to DB`);
+                    log.info(`User with id ${doc._id} is successfully saved to DB`);
                 })
             }
         } catch (err) {
@@ -255,7 +255,7 @@ class UserController {
             const {_id, name, email}: any = await User.findById(userId);
 
             res.json({
-                message: 'Success',
+                message: 'You are successfully authorized',
                 data: {
                     userId: _id,
                     name: name,
@@ -289,15 +289,15 @@ class UserController {
                     await PostModel.deleteMany({'author': userId});
 
                     res.json({
-                        message: `User with id ${userId} successfully deleted from DB`
+                        message: `User with id ${userId} is successfully deleted from DB`
                     })
-                    log.info(dbColor(`User with id ${userId} successfully deleted from DB`))
+                    log.info(dbColor(`User with id ${userId} is successfully deleted from DB`))
                 } else {
                     res.json({
                         errorType: errorTypes.NotFound,
-                        message: `Error, can\'t delete User with id ${userId} from DB. Reason: user not found`
+                        message: `Error, can\'t delete User with id ${userId} from DB. Reason: user is not found`
                     })
-                    log.info(errorColor(`Error, can\'t delete User with id ${userId} from DB. Reason: user not found`))
+                    log.info(errorColor(`Error, can\'t delete User with id ${userId} from DB. Reason: user is not found`))
                 }
 
             })
@@ -322,10 +322,10 @@ class UserController {
                 // .populate('likedPosts')
                 // .exec();
 
-            log.info(`User with ID: ${req.params.id} successfully found in DB`);
+            log.info(`User with ID: ${req.params.id} is successfully found in DB`);
 
             res.status(200).json({
-                message: 'User successfully found',
+                message: 'User is successfully found',
                 data: user
             })
         } catch (err) {
@@ -348,16 +348,16 @@ class UserController {
 
             if (user) {
                 res.status(200).json({
-                    message: `User with id ${tokenUserId} found successfully in DB`,
+                    message: `User with id ${tokenUserId} is successfully found in DB`,
                     data: user
                 })
-                log.info(dbColor(`User with id ${tokenUserId} found successfully in DB`))
+                log.info(dbColor(`User with id ${tokenUserId} is successfully found in DB`))
             } else {
                 res.status(404).json({
                     errorType: errorTypes.NotFound,
                     message: `User with id ${tokenUserId} not found in DB`
                 })
-                log.info(errorColor(`User with id ${tokenUserId} not found in DB`))
+                log.info(errorColor(`User with id ${tokenUserId} was not found in DB`))
             }
         } catch (err) {
             res.status(500).json({message: 'Internal server error'})
@@ -369,7 +369,7 @@ class UserController {
         await User.deleteMany({}, (users: any) => {
             res.json({
                 users,
-                message: "ONLY FOR DEV ENV: All users successfully removed from db"
+                message: "ONLY FOR DEV ENV: All users are successfully removed from db"
             })
         });
     }
