@@ -310,17 +310,17 @@ class UserController {
     async readById(req: Request, res: Response) {
         log.info('-- UserController method ".readById" called --');
         try {
-            const user = await User.findById(req.params.id)
-                .populate({
-                    path: 'posts',
-                    model: PostModel,
-                    populate: {
-                        path: 'author',
-                        select: 'name phone',
-                    }
-                })
-                .populate('likedPosts')
-                .exec();
+            const user = await User.findById(req.params.id, '-likedPosts -posts')
+                // .populate({
+                //     path: 'posts',
+                //     model: PostModel,
+                //     populate: {
+                //         path: 'author',
+                //         select: 'name phone',
+                //     }
+                // })
+                // .populate('likedPosts')
+                // .exec();
 
             log.info(`User with ID: ${req.params.id} successfully found in DB`);
 
