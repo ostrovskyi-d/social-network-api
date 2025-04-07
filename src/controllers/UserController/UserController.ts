@@ -9,6 +9,7 @@ import {Request, Response} from 'express';
 import log from "../../heplers/logger";
 import bcrypt from 'bcrypt';
 import {userMapping} from "../../mappings/userMapping";
+import {errorTypes} from "../../consts/errorTypes";
 
 const {brightCyan: dbColor, red: errorColor}: any = colors;
 const config = getConfig();
@@ -64,6 +65,7 @@ class UserController {
         } catch (err: any) {
             log.error(`Error fetching users: ${err.message}`);
             res.status(500).json({
+                errorType: errorTypes.ServerError,
                 message: "Internal Server Error",
                 error: err.message
             });
@@ -78,7 +80,10 @@ class UserController {
         if (!email || !password) {
             return res
                 .status(400)
-                .json({message: "Please Input Username and Password"});
+                .json({
+                    errorType: errorTypes.InvalidCredentials,
+                    message: "Please Input Username and Password"
+                });
         }
 
         try {
@@ -107,19 +112,23 @@ class UserController {
                 await user.save().then((doc, err) => {
                     if (err) {
                         return res.json({
+                            errorType: errorTypes.ServerError,
                             message: err.message
                         })
                     }
                     res.json({
                         message: `User with id ${doc._id} successfully saved to DB`,
-                        user: userMapping(user),
-                        token,
+                        data: {
+                            token,
+                            user: userMapping(user),
+                        }
                     })
                     log.info(`User with id ${doc._id} successfully saved to DB`);
                 })
             }
         } catch (err) {
             res.status(500).json({
+                errorType: errorTypes.ServerError,
                 message: `Error: User with name ${name} can't be created.`
             })
             log.error(`Error: User with name ${name} can't be created: ${JSON.stringify(err)}`);
@@ -136,15 +145,20 @@ class UserController {
             if (!email || !password) {
                 return res
                     .status(400)
-                    .json({message: "Please Input Username and Password"});
+                    .json({
+                        errorType: errorTypes.InvalidRequest,
+                        message: "Please Input Username and Password"
+                    });
             }
 
             // Check If User Exists In The Database
             const user = await User.findOne({email}).select('+password');
 
-
             if (!user) {
-                return res.status(401).json({message: "Invalid username or password"});
+                return res.status(401).json({
+                    errorType: errorTypes.InvalidCredentials,
+                    message: "Invalid username or password"
+                });
             }
 
             const {password: userStoredPassword}: any = user || {};
@@ -152,7 +166,10 @@ class UserController {
             const passwordMatch = await bcrypt.compare(password, userStoredPassword);
 
             if (!passwordMatch) {
-                return res.status(401).json({message: "Invalid username or password"});
+                return res.status(401).json({
+                    errorType: errorTypes.InvalidCredentials,
+                    message: "Invalid username or password"
+                });
             }
 
             const token = jwt.sign({sub: user._id}, JWT_SECRET as string, {expiresIn: '7d'});
@@ -160,11 +177,14 @@ class UserController {
             log.info("User ID: ", user._id);
 
             res.status(200).json({
-                userId: user._id,
-                token
+                data: {
+                    userId: user._id,
+                    token
+                }
             });
         } catch (err) {
             res.status(500).json({
+                errorType: errorTypes.ServerError,
                 message: `Server internal error.`
             })
             log.error(err);
@@ -210,7 +230,7 @@ class UserController {
             }
 
             await User.findByIdAndUpdate(userId, {$set: updateData});
-            const updatedUser = await User.findById(userId);
+            const updatedUser = await User.findById(userId).exec();
 
             res.status(200).json({
                 message: `User successfully updated`,
@@ -218,7 +238,10 @@ class UserController {
             });
         } catch (err: any) {
             log.error(err);
-            res.status(500).json({message: `Server internal error.`})
+            res.status(500).json({
+                errorType: errorTypes.ServerError,
+                message: `Server internal error.`
+            })
         }
     }
 
@@ -231,13 +254,19 @@ class UserController {
             const {_id, name, email}: any = await User.findById(userId);
 
             res.json({
-                userId: _id,
-                name: name,
-                email: email,
+                message: 'Success',
+                data: {
+                    userId: _id,
+                    name: name,
+                    email: email,
+                }
             });
         } catch (err) {
             log.error(err);
-            res.status(500).json({message: `Server internal error.`});
+            res.status(500).json({
+                errorType: errorTypes.ServerError,
+                message: `Server internal error.`
+            });
         }
     }
 
@@ -245,7 +274,7 @@ class UserController {
         log.info('-- UserController method ".delete" called --');
 
         try {
-            const {author: userId}: any = await getUserIdByToken(req.headers.authorization)
+            const {sub: userId}: any = await getUserIdByToken(req.headers.authorization)
 
             await User.deleteOne({_id: userId}).then(async (user: any) => {
                 if (user) {
@@ -257,6 +286,7 @@ class UserController {
                     log.info(dbColor(`User with id ${userId} successfully deleted from DB`))
                 } else {
                     res.json({
+                        errorType: errorTypes.NotFound,
                         message: `Error, can\'t delete User with id ${userId} from DB. Reason: user not found`
                     })
                     log.info(errorColor(`Error, can\'t delete User with id ${userId} from DB. Reason: user not found`))
@@ -294,7 +324,10 @@ class UserController {
             })
         } catch (err) {
             log.error(err);
-            res.status(500).json({message: `Server internal error.`})
+            res.status(500).json({
+                errorType: errorTypes.ServerError,
+                message: `Server internal error.`
+            })
         }
     }
 
@@ -324,6 +357,7 @@ class UserController {
                 log.info(dbColor(`User with id ${req.params.id} found successfully in DB`))
             } else {
                 res.status(404).json({
+                    errorType: errorTypes.NotFound,
                     message: `User with id ${req.params.id} not found in DB`
                 })
                 log.info(errorColor(`User with id ${req.params.id} not found in DB`))

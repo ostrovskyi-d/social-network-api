@@ -4,11 +4,12 @@ import PostModel from "../../models/PostModel";
 import {getUserIdByToken} from "../../services/authService";
 import {getConfig} from "../../config";
 import {uploadFile} from "../../services/uploadService";
-import {getPostsFromFilters, getPagedPostsHandler, saveNewPostToDatabase} from "./PostsHandlers";
+import {getPagedPostsHandler, saveNewPostToDatabase} from "./PostsHandlers";
 import {updatePostOwner} from "../UserController/UserHandlers";
 import {Request, Response} from 'express';
 import log from "../../heplers/logger";
 import User from "../../models/UserModel";
+import {errorTypes} from "../../consts/errorTypes";
 
 const {
     brightCyan: dbColor,
@@ -36,6 +37,7 @@ class PostsController {
 
             if (!result) {
                 res.status(404).json({
+                    errorType: errorTypes.NotFound,
                     message: `Error. Can't handle posts at page №: ${+req.query['page']}`,
                     posts: result
                 })
@@ -84,14 +86,20 @@ class PostsController {
             const user: any = await User.findById(userId);
             if (!user) {
                 log.info('User does not exist');
-                return res.status(404).json({message: 'User not found'});
+                return res.status(404).json({
+                    errorType: errorTypes.NotFound,
+                    message: 'User not found'
+                });
             }
 
             // Optionally, check if the post exists
             const post = await PostModel.findById(postId);
             if (!post) {
                 log.info('Post does not exist');
-                return res.status(404).json({message: 'Post not found'});
+                return res.status(404).json({
+                    errorType: errorTypes.NotFound,
+                    message: 'Post not found'
+                });
             }
 
             const hasLiked = post.likes.users.includes(userId);
@@ -109,33 +117,43 @@ class PostsController {
                 message: hasLiked ? 'Post unliked successfully' : 'Post liked successfully'
             });
         } catch (error) {
-            console.error(error);
-            return res.status(500).json({message: 'Internal server error'});
+            log.error(error);
+            return res.status(500).json({
+                errorType: errorTypes.ServerError,
+                message: 'Internal server error'
+            });
         }
     }
 
     async read(req: Request, res: Response) {
         log.info('-- PostsController method ".read" called --');
 
-        await PostModel.findOne({_id: req.params.id}).populate({
-            path: 'author',
-            select: '-likedPosts'
-        }).then((ad: any) => {
-            if (!ad) {
-                res.json({
-                    resultCode: res.statusCode,
-                    message: `Post with id ${req.params.id} not found in DB`,
-                })
-                log.info(errorColor(`Post with id ${req.params.id} not found in DB`))
-            } else {
-                res.json({
-                    resultCode: res.statusCode,
-                    message: `Post with id ${req.params.id} found successfully in DB`,
-                    ad
-                })
-                log.info(dbColor(`Post with id ${req.params.id} found successfully in DB`))
-            }
-        })
+        try {
+            await PostModel.findOne({_id: req.params.id}).populate({
+                path: 'author',
+                select: '-likedPosts'
+            }).then((ad: any) => {
+                if (!ad) {
+                    res.json({
+                        errorType: errorTypes.NotFound,
+                        message: `Post with id ${req.params.id} not found in DB`,
+                    })
+                    log.info(errorColor(`Post with id ${req.params.id} not found in DB`))
+                } else {
+                    res.json({
+                        message: `Post with id ${req.params.id} found successfully in DB`,
+                        ad
+                    })
+                    log.info(dbColor(`Post with id ${req.params.id} found successfully in DB`))
+                }
+            })
+        } catch (err) {
+            log.error(err);
+            res.status(500).json({
+                errorType: errorTypes.ServerError,
+                message: 'Internal server error'
+            })
+        }
     }
 
     async update(req: Request, res: Response) {
@@ -144,37 +162,48 @@ class PostsController {
         const paramsId = params.id;
         let file;
 
-        if (req.file) {
-            file = await uploadFile(req.file);
+        try {
+            if (req.file) {
+                file = await uploadFile(req.file);
+            }
+        } catch (err) {
+            log.error(err);
         }
 
-        await PostModel.findByIdAndUpdate(paramsId, {
-            $set: {
-                ...req.body,
-                // @ts-ignore
-                img: file ? S3_PATH + file.originalname : ''
-            }
-        }, (err: any) => {
-            if (err) {
-                res.json({
-                    resultCode: res.statusCode,
-                    message: err
-                })
-                log.info(errorColor(`Error, cannot update Post with id ${req.params.id}: `), err)
-            } else {
-                res.json({
-                    resultCode: res.statusCode,
-                    message: `Post with id ${req.params.id} is successfully updated`
-                })
-                log.info(dbColor(`Post with id ${req.params.id} is successfully updated`, req.body))
-            }
-        })
+        try {
+            await PostModel.findByIdAndUpdate(paramsId, {
+                $set: {
+                    ...req.body,
+                    // @ts-ignore
+                    img: file ? S3_PATH + file.originalname : ''
+                }
+            }, (err: any) => {
+                if (err) {
+                    res.status(500).json({
+                        errorType: errorTypes.ServerError,
+                        message: `Something went wrong, can't update post`
+                    })
+                    log.info(errorColor(`Error, cannot update Post with id ${req.params.id}: `), err)
+                } else {
+                    res.json({
+                        message: `Post with id ${req.params.id} is successfully updated`
+                    })
+                    log.info(dbColor(`Post with id ${req.params.id} is successfully updated`, req.body))
+                }
+            })
+        } catch (err) {
+            log.error(err);
+            res.status(500).json({
+                errorType: errorTypes.ServerError,
+                message: 'Internal server error'
+            })
+        }
     }
 
     async delete(req: Request, res: Response) {
         log.info('-- PostsController method ".delete" called --');
 
-        const {author: userId}: any = await getUserIdByToken(req.headers.authorization);
+        const {sub: userId}: any = await getUserIdByToken(req.headers.authorization);
         const deletedAd = await PostModel.findByIdAndDelete(req.params.id).exec();
         log.info("Deleted Ad: ", deletedAd);
         await UserModel.updateMany({}, {$pull: {likedAds: req.params.id, ads: req.params.id}});
@@ -182,17 +211,16 @@ class PostsController {
 
         if (userAds) {
             res.json({
-                resultCode: 201,
                 message: `Post with id ${req.params.id} successfully deleted from DB`,
                 ads: userAds
             })
             log.info(dbColor(`Post with id ${req.params.id} successfully deleted from DB`))
         } else {
             res.json({
-                resultCode: 409,
+                errorType: errorTypes.NotFound,
                 message: `Error, can\'t delete Post with id ${req.params.id} from DB`
             })
-            log.info(errorColor(`Error, can\'t delete Post with id ${req.params.id} from DB`))
+            log.error(`Error, can\'t delete Post with id ${req.params.id} from DB`)
         }
 
     }

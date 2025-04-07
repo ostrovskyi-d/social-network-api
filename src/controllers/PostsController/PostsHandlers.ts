@@ -2,6 +2,7 @@ import PostModel from "../../models/PostModel";
 import {getConfig} from '../../config';
 import colors from "colors";
 import log from "../../heplers/logger";
+import {errorTypes} from "../../consts/errorTypes";
 
 const {PER_PAGE}: any = getConfig();
 
@@ -94,6 +95,7 @@ const saveNewPostToDatabase = async (post: any) => {
     } catch (err: any) {
         log.info(errorColor(err))
         return {
+            errorType: errorTypes.ServerError,
             message: "Error: " + err.message,
         }
     }
