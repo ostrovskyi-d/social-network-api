@@ -28,7 +28,14 @@ const postSchema = new Schema<Post>({
     },
     {
         timestamps: true,
-        versionKey: false
+        versionKey: false,
+        toJSON: {
+            virtuals: true,
+            transform: (_doc, ret) => {
+                ret.id = ret._id;
+                delete ret._id;
+            },
+        },
     },
 )
 

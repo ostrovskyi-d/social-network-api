@@ -16,6 +16,13 @@ interface User {
     password: string;
     contacts?: {
         linkedIn?: string,
+        github?: string;
+        facebook?: string;
+        instagram?: string;
+    }
+    photos?: {
+        avatar?: string;
+        background?: string
     }
 }
 
@@ -42,9 +49,17 @@ const userSchema = new Schema<User>(
             instagram: {type: String, unique: true},
         },
     },
-    {versionKey: false},
-    // @ts-ignore
-    {timestamps: true},
+    {
+        versionKey: false,
+        timestamps: true,
+        toJSON: {
+            virtuals: true,
+            transform: (_doc, ret) => {
+                ret.id = ret._id;
+                delete ret._id;
+            },
+        },
+    }
 );
 
 
