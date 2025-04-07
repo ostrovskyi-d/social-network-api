@@ -35,14 +35,12 @@ app.use(cors());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 config.AUTH.isActive && app.use(jwt());
-// app.use(express.static('./uploads'));
-// app.use('/uploads', express.static('./uploads'));
 
-// app.get('/', (req, res) => {
-//     res.json({
-//         message: 'Welcome to Social Network API!',
-//     })
-// });
+app.get('/', (req, res) => {
+    res.json({
+        message: 'Welcome to Social Network API! It Works!',
+    })
+});
 
 // IMPORTANT: keep order of routes
 // get posts list paginated
