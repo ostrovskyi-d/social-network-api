@@ -177,6 +177,7 @@ class UserController {
             log.info("User ID: ", user._id);
 
             res.status(200).json({
+                message: 'Success',
                 data: {
                     userId: user._id,
                     token
@@ -352,7 +353,7 @@ class UserController {
             if (user) {
                 res.status(200).json({
                     message: `User with id ${req.params.id} found successfully in DB`,
-                    user
+                    data: {user}
                 })
                 log.info(dbColor(`User with id ${req.params.id} found successfully in DB`))
             } else {
