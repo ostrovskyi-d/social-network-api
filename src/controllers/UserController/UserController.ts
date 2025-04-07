@@ -142,11 +142,12 @@ class UserController {
             // Check If User Exists In The Database
             const user = await User.findOne({email}).select('+password');
 
-            const {password: userStoredPassword}: any = user;
 
             if (!user) {
                 return res.status(401).json({message: "Invalid username or password"});
             }
+
+            const {password: userStoredPassword}: any = user || {};
 
             const passwordMatch = await bcrypt.compare(password, userStoredPassword);
 
