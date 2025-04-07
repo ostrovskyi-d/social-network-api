@@ -63,6 +63,15 @@ app.delete('/clear-posts', Post._clearPostsCollection);
 
 // get list of users (paginated)
 app.get('/users', User.index);
+// update profile
+app.put('/user', upload.fields([
+    {name: 'avatar', maxCount: 1},
+    {name: 'background', maxCount: 1}
+]), User.update);
+// get token owner profile
+app.get('/user/me', User.readMy);
+// get user profile by id
+app.get('/user/:id', User.readById);
 // get current user brief data (from token)
 app.get('/auth/me', User.auth);
 // authorize user using email and password, returns token
@@ -71,15 +80,6 @@ app.get('/auth/me', User.auth);
 app.post('/auth/register', upload.single('avatar'), User.create);
 // @ts-ignore
 app.post('/auth/login', User.login);
-// get token owner profile
-app.get('/profile/me', User.readMy);
-// get user profile by id
-app.get('/profile/:id', User.readById);
-// update profile
-app.put('/profile', upload.fields([
-    {name: 'avatar', maxCount: 1},
-    {name: 'background', maxCount: 1}
-]), User.update);
 
 // delete user
 app.delete('/users', User.delete);

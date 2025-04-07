@@ -33,11 +33,19 @@ const jwt = () => {
 };
 
 export const getUserIdByToken = async (token: string | undefined) => {
-    const parsedToken: string | undefined = token?.toString().includes('Bearer') ? token.split('Bearer ')[1] : token;
-    if (parsedToken) {
-        const verifyResult = verify(parsedToken, AUTH.JWT_SECRET as string);
+    try {
+        const parsedToken: string | undefined = token?.toString().includes('Bearer') ? token.split('Bearer ')[1] : token;
 
-        return verifyResult;
+        if (parsedToken) {
+            const verifyResult = verify(parsedToken, AUTH.JWT_SECRET as string);
+
+            return verifyResult;
+        } else {
+            throw new Error(`Can't parse token`);
+        }
+    } catch (error) {
+        log.error(error);
+        throw error;
     }
 }
 

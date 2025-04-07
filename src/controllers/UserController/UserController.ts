@@ -235,7 +235,7 @@ class UserController {
 
             res.status(200).json({
                 message: `User successfully updated`,
-                data: {user: updatedUser}
+                data: updatedUser
             });
         } catch (err: any) {
             log.error(err);
@@ -248,7 +248,6 @@ class UserController {
 
     async auth(req: Request, res: Response) {
         log.info('-- UserController method ".auth" called --');
-
 
         try {
             const {sub: userId}: any = await getUserIdByToken(req.headers.authorization);
@@ -327,9 +326,7 @@ class UserController {
 
             res.status(200).json({
                 message: 'User successfully found',
-                data: {
-                    user
-                }
+                data: user
             })
         } catch (err) {
             log.error(err);
@@ -343,33 +340,24 @@ class UserController {
     async readMy(req: Request, res: Response) {
         log.info('-- UserController method ".readMy" called --');
         try {
-            const {sub: tokenUserId}: any = getUserIdByToken(req.headers.authorization);
+            const {sub: tokenUserId}: any = await getUserIdByToken(req.headers.authorization);
 
             console.log('token ID: ', tokenUserId);
 
-            const user = await User.findOne({_id: tokenUserId}, 'likedPosts')
-                .populate({
-                    path: 'likedPosts',
-                    model: PostModel,
-                    populate: {
-                        path: 'author',
-                        select: 'name phone'
-                    }
-                })
-                .exec();
+            const user = await User.findOne({_id: tokenUserId}, '-likedPosts -posts');
 
             if (user) {
                 res.status(200).json({
-                    message: `User with id ${req.params.id} found successfully in DB`,
-                    data: {user}
+                    message: `User with id ${tokenUserId} found successfully in DB`,
+                    data: user
                 })
-                log.info(dbColor(`User with id ${req.params.id} found successfully in DB`))
+                log.info(dbColor(`User with id ${tokenUserId} found successfully in DB`))
             } else {
                 res.status(404).json({
                     errorType: errorTypes.NotFound,
-                    message: `User with id ${req.params.id} not found in DB`
+                    message: `User with id ${tokenUserId} not found in DB`
                 })
-                log.info(errorColor(`User with id ${req.params.id} not found in DB`))
+                log.info(errorColor(`User with id ${tokenUserId} not found in DB`))
             }
         } catch (err) {
             res.status(500).json({message: 'Internal server error'})
