@@ -67,6 +67,8 @@ app.put('/user', upload.fields([
     {name: 'avatar', maxCount: 1},
     {name: 'background', maxCount: 1}
 ]), User.update);
+// @ts-ignore
+app.put('/user/follow/:id', User.follow);
 // get token owner profile
 app.get('/user/me', User.readMy);
 // get user profile by id
