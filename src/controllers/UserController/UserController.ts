@@ -21,6 +21,7 @@ class UserController {
         log.info('-- UserController method ".index" called --');
 
         try {
+            const {sub: tokenOwnerId} = await getUserIdByToken(req.headers.authorization);
             const perPage = Number(req.query['count']) || 10;  // Default perPage to 10 if not provided
             const reqPage = Math.max(Number(req.query['page']) || 1, 1); // Ensure page is at least 1
             const isFollowing = req.query['following'] === 'true';  // Convert to boolean
@@ -52,10 +53,20 @@ class UserController {
 
             log.info(`Users are successfully found. Total: ${users.length}`);
 
+            const usersUpdated = users.map((userDoc) => {
+                const user: any = userDoc.toObject();
+                const isFollowedByMe = user.followedBy.some((id: any) => id.toString() === tokenOwnerId);
+
+                return {
+                    isFollowedByMe,
+                    ...user,
+                }
+            });
+
             res.status(200).json({
                 message: "Users are successfully found",
                 data: {
-                    users,
+                    usersUpdated,
                     usersTotal,
                     totalPages,
                     perPage,
@@ -196,7 +207,7 @@ class UserController {
         log.info('-- UserController method ".follow" called --');
 
         try {
-            const {id: followId} = req.body;
+            const {id: followId} = req.params;
             const {sub: tokenOwnerId} = await getUserIdByToken(req.headers.authorization);
 
             const userTokenOwner: any = await User.findById(tokenOwnerId);
@@ -352,7 +363,9 @@ class UserController {
     async readById(req: Request, res: Response) {
         log.info('-- UserController method ".readById" called --');
         try {
-            const user = await User.findById(req.params.id, '-likedPosts -posts')
+            const {sub: tokenOwnerId}: any = await getUserIdByToken(req.headers.authorization);
+
+            const user: any = await User.findById(req.params.id, '-likedPosts -posts')
                 .populate({
                     path: 'followedBy',
                     model: User,
@@ -365,11 +378,17 @@ class UserController {
                 })
                 .exec();
 
+            const isFollowedByMe = user.followedBy.some((user: any) => user._id.toString() === tokenOwnerId);
+            const userUpdated = user.toObject();
+
             log.info(`User with ID: ${req.params.id} is successfully found in DB`);
 
             res.status(200).json({
                 message: 'User is successfully found',
-                data: user
+                data: {
+                    isFollowedByMe,
+                    ...userUpdated
+                }
             })
         } catch (err) {
             log.error(err);
