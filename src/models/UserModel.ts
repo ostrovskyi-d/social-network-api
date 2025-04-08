@@ -14,6 +14,7 @@ interface User {
     job?: string,
     email: string;
     password: string;
+    isFollowedByMe: boolean;
     contacts?: {
         linkedIn?: string,
         github?: string;
@@ -42,6 +43,7 @@ const userSchema = new Schema<User>(
         posts: [{type: Schema.Types.ObjectId, ref: 'Post'}],
         followedBy: [{type: Schema.Types.ObjectId, ref: 'User'}],
         following: [{type: Schema.Types.ObjectId, ref: 'User'}],
+        isFollowedByMe: {type: Boolean, default: false},
         contacts: {
             linkedIn: {type: String, unique: true},
             github: {type: String, unique: true},

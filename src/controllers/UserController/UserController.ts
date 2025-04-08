@@ -311,16 +311,17 @@ class UserController {
         log.info('-- UserController method ".readById" called --');
         try {
             const user = await User.findById(req.params.id, '-likedPosts -posts')
-                // .populate({
-                //     path: 'posts',
-                //     model: PostModel,
-                //     populate: {
-                //         path: 'author',
-                //         select: 'name phone',
-                //     }
-                // })
-                // .populate('likedPosts')
-                // .exec();
+                .populate({
+                    path: 'followedBy',
+                    model: User,
+                    select: 'name photos'
+                })
+                .populate({
+                    path: 'following',
+                    model: User,
+                    select: 'name photos'
+                })
+                .exec();
 
             log.info(`User with ID: ${req.params.id} is successfully found in DB`);
 
@@ -344,7 +345,7 @@ class UserController {
 
             console.log('token ID: ', tokenUserId);
 
-            const user = await User.findOne({_id: tokenUserId}, '-likedPosts -posts');
+            const user = await User.findOne({_id: tokenUserId}, '-likedPosts -posts -isFollowedByMe');
 
             if (user) {
                 res.status(200).json({
