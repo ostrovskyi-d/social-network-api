@@ -274,7 +274,13 @@ class UserController {
             }
 
             const updateData: any = {
-                ...body
+                ...body,
+                contacts: {
+                    instagram: body.instagram,
+                    facebook: body.facebook,
+                    github: body.github,
+                    linkedIn: body.linkedIn,
+                }
             };
 
             if (avatarLink || backgroundLink) {
