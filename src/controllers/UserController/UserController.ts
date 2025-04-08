@@ -192,6 +192,48 @@ class UserController {
         }
     }
 
+    async follow(req: Request, res: Response) {
+        log.info('-- UserController method ".follow" called --');
+
+        try {
+            const {id: followId} = req.body;
+            const {sub: tokenOwnerId} = await getUserIdByToken(req.headers.authorization);
+
+            const userTokenOwner: any = await User.findById(tokenOwnerId);
+            const userToFollow: any = await User.findById(followId);
+
+            if (!userToFollow) {
+                return res.status(404).json({
+                    errorType: errorTypes.NotFound,
+                    message: `User with id ${followId} was not found in DB`
+                })
+            }
+
+            const isAlreadyFollowing = userTokenOwner.following.includes(followId);
+
+            await Promise.all([
+                User.findByIdAndUpdate(tokenOwnerId,
+                    isAlreadyFollowing ? {$pull: {"following": followId}} : {$addToSet: {"following": followId}}
+                ),
+                User.findByIdAndUpdate(followId,
+                    isAlreadyFollowing ? {$pull: {"followedBy": tokenOwnerId}} : {$addToSet: {"followedBy": tokenOwnerId}}
+                )
+            ]);
+
+            res.status(200).json({
+                message: `User with ID ${followId} was successfully followed`
+            })
+
+
+        } catch (err) {
+            log.error(err);
+            res.status(500).json({
+                message: 'Internal Server Error',
+                errorType: errorTypes.ServerError
+            });
+        }
+    }
+
     async update(req: Request, res: Response) {
         log.info('-- UserController method ".update" called --');
 
