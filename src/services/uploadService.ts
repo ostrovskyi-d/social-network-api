@@ -4,16 +4,16 @@ import log from "../heplers/logger";
 import crypto from 'crypto';
 
 const {
-    AWS_ACCESS_KEY_ID,
-    AWS_SECRET_ACCESS_KEY,
+    // AWS_ACCESS_KEY_ID,
+    // AWS_SECRET_ACCESS_KEY,
     BUCKET_REGION,
     S3_BUCKET_NAME,
     S3_PATH
 } = getConfig().S3;
 
 const s3 = new AWS.S3({
-    accessKeyId: AWS_ACCESS_KEY_ID,
-    secretAccessKey: AWS_SECRET_ACCESS_KEY,
+    // accessKeyId: AWS_ACCESS_KEY_ID,
+    // secretAccessKey: AWS_SECRET_ACCESS_KEY,
     region: BUCKET_REGION
 });
 

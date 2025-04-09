@@ -53,8 +53,8 @@ const userSchema = new Schema<User>(
     {
         versionKey: false,
         timestamps: true,
+        virtuals: true,
         toJSON: {
-            virtuals: true,
             transform: (_doc, ret) => {
                 ret.id = ret._id;
                 delete ret._id;

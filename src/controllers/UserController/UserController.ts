@@ -1,6 +1,5 @@
 import {getConfig} from "../../config";
 import User from '../../models/UserModel';
-import colors from "colors";
 import jwt, {JsonWebTokenError} from 'jsonwebtoken';
 import {getUserIdByToken} from "../../services/authService";
 import PostModel from "../../models/PostModel";
@@ -8,10 +7,8 @@ import {uploadFile} from "../../services/uploadService";
 import {Request, Response} from 'express';
 import log from "../../heplers/logger";
 import bcrypt from 'bcrypt';
-import {userMapping} from "../../mappings/userMapping";
 import {errorTypes} from "../../consts/errorTypes";
 
-const {brightCyan: dbColor, red: errorColor}: any = colors;
 const config = getConfig();
 const S3_PATH = config.S3.S3_PATH;
 const JWT_SECRET = config.AUTH.JWT_SECRET;
@@ -19,13 +16,8 @@ const JWT_SECRET = config.AUTH.JWT_SECRET;
 class UserController {
     async index(req: Request, res: Response) {
         log.info('-- UserController method ".index" called --');
-        function transformId(obj: any) {
-            if (!obj || typeof obj !== 'object') return obj;
-            const {_id, ...rest} = obj;
-            return {id: _id, ...rest};
-        }
+
         try {
-            const {sub: tokenOwnerId} = await getUserIdByToken(req.headers.authorization);
             const perPage = Number(req.query['count']) || 10;  // Default perPage to 10 if not provided
             const reqPage = Math.max(Number(req.query['page']) || 1, 1); // Ensure page is at least 1
             const isFollowing = req.query['following'] === 'true';  // Convert to boolean
@@ -51,32 +43,9 @@ class UserController {
             const users = await User.find(filter,  '-posts -likedPosts')
                 .skip((reqPage - 1) * perPage)
                 .limit(perPage)
-                .populate({path: 'following', select: 'name photos'})
-                .populate({path: 'followedBy', select: 'name photos'})
                 .sort({createdAt: -1})
-                .exec()
 
             log.info(`Users are successfully found. Total: ${users.length}`);
-
-            const usersUpdated = users.map((userDoc) => {
-                const user: any = userDoc.toJSON();
-                user.following = user.following.map((user: any) => {
-                    user.id = user.id.toString();
-                    return transformId(user)
-                });
-                user.followedBy = user.followedBy.map((user: any) => {
-                    user.id = user.id.toString();
-                    return transformId(user)
-                });
-                user.id = user.id.toString();
-
-                const isFollowedByMe = user.followedBy.includes(tokenOwnerId);
-
-                return {
-                    isFollowedByMe,
-                    ...user,
-                }
-            });
 
             res.status(200).json({
                 message: "Users are successfully found",
@@ -85,7 +54,7 @@ class UserController {
                     totalPages,
                     perPage,
                     currentPage: reqPage,
-                    users: usersUpdated,
+                    users,
                 }
             });
         } catch (err: any) {
@@ -146,7 +115,7 @@ class UserController {
                         message: `User with id ${doc._id} is successfully saved to DB`,
                         data: {
                             token,
-                            user: userMapping(user),
+                            user,
                         }
                     })
                     log.info(`User with id ${doc._id} is successfully saved to DB`);
@@ -315,7 +284,7 @@ class UserController {
             }
 
             await User.findByIdAndUpdate(userId, {$set: updateData});
-            const updatedUser = await User.findById(userId).exec();
+            const updatedUser = await User.findById(userId);
 
             res.status(200).json({
                 message: `User successfully updated`,
@@ -387,39 +356,31 @@ class UserController {
             })
         } catch (err) {
             res.status(500).json(`Internal server error`)
-            log.info(errorColor("Error: "), err)
+            log.error(err)
         }
     }
 
     async readById(req: Request, res: Response) {
         log.info('-- UserController method ".readById" called --');
+
         try {
-            const {sub: tokenOwnerId}: any = await getUserIdByToken(req.headers.authorization);
+            const user: any = await User.findById(req.params.id, '-likedPosts -posts');
 
-            const user: any = await User.findById(req.params.id, '-likedPosts -posts')
-                .populate({
-                    path: 'followedBy',
-                    model: User,
-                    select: 'name photos'
-                })
-                .populate({
-                    path: 'following',
-                    model: User,
-                    select: 'name photos'
-                })
-                .exec();
+            if(!user) {
+                const errorString = `Can't find user with id: ${req.params.id} in DB`
+                log.error(errorString);
 
-            const isFollowedByMe = user.followedBy.some((user: any) => user._id.toString() === tokenOwnerId);
-            const userUpdated = user.toObject();
+                return res.status(404).json({
+                    errorType: errorTypes.NotFound,
+                    message: errorString
+                })
+            }
 
             log.info(`User with ID: ${req.params.id} is successfully found in DB`);
 
             res.status(200).json({
                 message: 'User is successfully found',
-                data: {
-                    isFollowedByMe,
-                    ...userUpdated
-                }
+                data: user
             })
         } catch (err) {
             log.error(err);

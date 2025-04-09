@@ -14,9 +14,9 @@ export default (env: any) => ({
     S3: {
         S3_BUCKET_NAME: env.S3_BUCKET_NAME,
         AWS_ACCESS_KEY_ID: env.AWS_ACCESS_KEY_ID,
-        AWS_SECRET_ACCESS_KEY: env.AWS_SECRET_ACCESS_KEY,
+        // AWS_SECRET_ACCESS_KEY: env.AWS_SECRET_ACCESS_KEY,
         BUCKET_REGION: env.BUCKET_REGION,
-        S3_PATH: `https://s3-${env.BUCKET_REGION}.amazonaws.com/${env.S3_BUCKET_NAME}/`
+        S3_PATH: `https://${env.S3_BUCKET_NAME}.s3.${env.BUCKET_REGION}.amazonaws.com/`
     },
     AUTH: {
         isActive: false,

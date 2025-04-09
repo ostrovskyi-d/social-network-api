@@ -71,7 +71,9 @@ app.put('/user', upload.fields([
 app.put('/user/follow/:id', User.follow);
 // get token owner profile
 app.get('/user/me', User.readMy);
+
 // get user profile by id
+// @ts-ignore
 app.get('/user/:id', User.readById);
 // get current user brief data (from token)
 app.get('/auth/me', User.auth);
