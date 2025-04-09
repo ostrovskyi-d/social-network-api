@@ -19,7 +19,11 @@ const JWT_SECRET = config.AUTH.JWT_SECRET;
 class UserController {
     async index(req: Request, res: Response) {
         log.info('-- UserController method ".index" called --');
-
+        function transformId(obj: any) {
+            if (!obj || typeof obj !== 'object') return obj;
+            const {_id, ...rest} = obj;
+            return {id: _id, ...rest};
+        }
         try {
             const {sub: tokenOwnerId} = await getUserIdByToken(req.headers.authorization);
             const perPage = Number(req.query['count']) || 10;  // Default perPage to 10 if not provided
@@ -50,13 +54,23 @@ class UserController {
                 .populate({path: 'following', select: 'name photos'})
                 .populate({path: 'followedBy', select: 'name photos'})
                 .sort({createdAt: -1})
-                .exec();
+                .exec()
 
             log.info(`Users are successfully found. Total: ${users.length}`);
 
             const usersUpdated = users.map((userDoc) => {
                 const user: any = userDoc.toJSON();
-                const isFollowedByMe = user.followedBy.some((id: any) => id.toString() === tokenOwnerId);
+                user.following = user.following.map((user: any) => {
+                    user.id = user.id.toString();
+                    return transformId(user)
+                });
+                user.followedBy = user.followedBy.map((user: any) => {
+                    user.id = user.id.toString();
+                    return transformId(user)
+                });
+                user.id = user.id.toString();
+
+                const isFollowedByMe = user.followedBy.includes(tokenOwnerId);
 
                 return {
                     isFollowedByMe,
@@ -211,6 +225,15 @@ class UserController {
             const {id: followId} = req.params;
             const {sub: tokenOwnerId} = await getUserIdByToken(req.headers.authorization);
 
+            console.log('followId: ', followId)
+            console.log('tokenOwnerId: ', tokenOwnerId);
+
+            if (followId === tokenOwnerId) {
+                res.status(400).json({
+                    errorType: errorTypes.InvalidRequest,
+                    message: `You can't follow yourself`
+                })
+            }
             const userTokenOwner: any = await User.findById(tokenOwnerId);
             const userToFollow: any = await User.findById(followId);
 
@@ -221,7 +244,7 @@ class UserController {
                 })
             }
 
-            const isAlreadyFollowing = userTokenOwner.following.includes(followId);
+            const isAlreadyFollowing = userTokenOwner.following.map((id: any) => id.toString()).includes(followId);
 
             await Promise.all([
                 User.findByIdAndUpdate(tokenOwnerId,
@@ -232,8 +255,9 @@ class UserController {
                 )
             ]);
 
+
             res.status(200).json({
-                message: `User with ID ${followId} was successfully followed`
+                message: `User with ID ${followId} was successfully ${isAlreadyFollowing ? 'unfollowed' : 'followed'}`
             })
 
 
