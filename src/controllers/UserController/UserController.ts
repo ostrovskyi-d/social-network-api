@@ -44,7 +44,7 @@ class UserController {
             const totalPages = Math.ceil(usersTotal / perPage);
 
             // Fetch users with applied filters and pagination
-            const users = await User.find(filter)
+            const users = await User.find(filter,  '-posts -likedPosts')
                 .skip((reqPage - 1) * perPage)
                 .limit(perPage)
                 .populate({path: 'following', select: 'name photos'})
@@ -54,7 +54,7 @@ class UserController {
             log.info(`Users are successfully found. Total: ${users.length}`);
 
             const usersUpdated = users.map((userDoc) => {
-                const user: any = userDoc.toObject();
+                const user: any = userDoc.toJSON();
                 const isFollowedByMe = user.followedBy.some((id: any) => id.toString() === tokenOwnerId);
 
                 return {
@@ -66,11 +66,11 @@ class UserController {
             res.status(200).json({
                 message: "Users are successfully found",
                 data: {
-                    usersUpdated,
                     usersTotal,
                     totalPages,
                     perPage,
-                    currentPage: reqPage
+                    currentPage: reqPage,
+                    users: usersUpdated,
                 }
             });
         } catch (err: any) {
@@ -350,13 +350,13 @@ class UserController {
                     res.json({
                         message: `User with id ${userId} is successfully deleted from DB`
                     })
-                    log.info(dbColor(`User with id ${userId} is successfully deleted from DB`))
+                    log.info(`User with id ${userId} is successfully deleted from DB`)
                 } else {
                     res.json({
                         errorType: errorTypes.NotFound,
                         message: `Error, can\'t delete User with id ${userId} from DB. Reason: user is not found`
                     })
-                    log.info(errorColor(`Error, can\'t delete User with id ${userId} from DB. Reason: user is not found`))
+                    log.info(`Error, can\'t delete User with id ${userId} from DB. Reason: user is not found`)
                 }
 
             })
@@ -419,13 +419,13 @@ class UserController {
                     message: `User with id ${tokenUserId} is successfully found in DB`,
                     data: user
                 })
-                log.info(dbColor(`User with id ${tokenUserId} is successfully found in DB`))
+                log.info(`User with id ${tokenUserId} is successfully found in DB`)
             } else {
                 res.status(404).json({
                     errorType: errorTypes.NotFound,
                     message: `User with id ${tokenUserId} not found in DB`
                 })
-                log.info(errorColor(`User with id ${tokenUserId} was not found in DB`))
+                log.error(`User with id ${tokenUserId} was not found in DB`)
             }
         } catch (err) {
             res.status(500).json({message: 'Internal server error'})
