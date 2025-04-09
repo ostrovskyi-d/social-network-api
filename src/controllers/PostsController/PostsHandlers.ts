@@ -54,6 +54,7 @@ const getPagedPostsHandler = async (queryParams: any = 1) => {
         const searchQuery = queryParams.query['search'] ? String(queryParams.query['search']) : null;
         const filter: any = {};
 
+        // todo: fix, not working
         if (searchQuery) {
             filter.title = {$regex: searchQuery, $options: 'i'};
         }
