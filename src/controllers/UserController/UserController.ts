@@ -48,6 +48,7 @@ class UserController {
                 .skip((reqPage - 1) * perPage)
                 .limit(perPage)
                 .populate({path: 'following', select: 'name photos'})
+                .populate({path: 'followedBy', select: 'name photos'})
                 .sort({createdAt: -1})
                 .exec();
 
