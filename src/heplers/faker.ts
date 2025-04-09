@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker';
 import UserModel from "../models/UserModel";
+import PostModel from "../models/PostModel";
 
 export const generateMockUsers = async (count: number) => {
     const users = [];
@@ -28,3 +29,28 @@ export const generateMockUsers = async (count: number) => {
     console.log(`${count} mock users inserted`);
 };
 
+export const generateMockPosts = async (count: number) => {
+    const users = await UserModel.find({}, '_id');
+    if (users.length === 0) {
+        throw new Error('No users found');
+    }
+
+    const posts = [];
+
+    for (let i = 0; i < count; i++) {
+        const randomUser = users[Math.floor(Math.random() * users.length)];
+
+        posts.push(new PostModel({
+            img: faker.image.urlPicsumPhotos(),
+            title: faker.lorem.sentence({ min: 3, max: 8 }),
+            author: randomUser._id,
+            likes: {
+                count: 0,
+                users: []
+            }
+        }));
+    }
+
+    await PostModel.insertMany(posts);
+    console.log(`${count} mock posts inserted`);
+};

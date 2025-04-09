@@ -1,10 +1,8 @@
 import PostModel from "../../models/PostModel";
-import {getConfig} from '../../config';
 import colors from "colors";
 import log from "../../heplers/logger";
 import {errorTypes} from "../../consts/errorTypes";
 
-const {PER_PAGE}: any = getConfig();
 
 const {
     brightCyan: dbColor,
@@ -49,28 +47,35 @@ const getPostsFromFilters = async ({
     log.info("totalPages: ", result.totalPages);
     return result;
 }
-const getPagedPostsHandler = async (pageQuery: any = 1) => {
+const getPagedPostsHandler = async (queryParams: any = 1) => {
     try {
-        const perPage = +PER_PAGE;
-        const reqPage = pageQuery || 1;
-        const postsTotal = await PostModel.countDocuments({});
+        const perPage = Number(queryParams.query['count']) || 10;
+        const reqPage = Math.max(Number(queryParams.query['page']) || 1, 1);
+        const searchQuery = queryParams.query['search'] ? String(queryParams.query['search']) : null;
+        const filter: any = {};
+
+        if (searchQuery) {
+            filter.title = {$regex: searchQuery, $options: 'i'};
+        }
+
+        const postsTotal = await PostModel.countDocuments(filter);
         const totalPages = Math.ceil(postsTotal / perPage);
-        log.info(pageQuery);
-        log.info(perPage * reqPage - perPage);
-        const pagedPosts = await PostModel.find({})
+
+        const pagedPosts = await PostModel.find(filter)
             .skip(perPage * reqPage - perPage)
             .limit(+perPage)
-            .populate({path: 'author', select: '-likedPosts'})
+            // .populate({path: 'author', select: '-likedPosts'})
             .sort({createdAt: -1})
-            .exec();
 
         return {
-            message: `Posts successfully found`,
-            posts: pagedPosts,
-            postsTotal: postsTotal,
-            totalPages,
-            perPage,
-            currentPage: reqPage
+            message: `Posts were successfully found`,
+            data: {
+                postsTotal: postsTotal,
+                totalPages,
+                perPage,
+                currentPage: reqPage,
+                posts: pagedPosts,
+            }
         };
 
     } catch (err: any) {

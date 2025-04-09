@@ -24,26 +24,25 @@ class PostsController {
         log.info('-- PostsController method ".index" called --');
         log.info(`query: ${JSON.stringify(req?.query)}`);
 
-        const reqPage = Number(req.query['page']);
-
-        if (!req.query['page']) {
-            const result = await getPagedPostsHandler();
-            log.info(`response: ${JSON.stringify(result)}`);
-
-            res.json(result);
-        } else {
-            const result = await getPagedPostsHandler(reqPage);
+        try {
+            const result = await getPagedPostsHandler(req);
             log.info(`response: ${JSON.stringify(result)}`);
 
             if (!result) {
                 res.status(404).json({
                     errorType: errorTypes.NotFound,
-                    message: `Error. Can't handle posts at page №: ${+req.query['page']}`,
+                    message: `Something went wrong, posts are not found`,
                     posts: result
                 })
             } else {
-                res.json(result)
+                res.status(200).json(result)
             }
+        } catch (err: any) {
+            log.error(err);
+            res.status(500).json({
+                errorType: errorTypes.ServerError,
+                message: err.message,
+            })
         }
     }
 
