@@ -61,7 +61,7 @@ app.delete('/posts/:id', Post.delete);
 app.delete('/clear-posts', Post._clearPostsCollection);
 
 // get list of users (paginated)
-app.get('/users', User.index);
+app.post('/users', User.index);
 // update profile
 app.put('/user', upload.fields([
     {name: 'avatar', maxCount: 1},

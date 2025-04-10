@@ -18,11 +18,18 @@ class UserController {
         log.info('-- UserController method ".index" called --');
 
         try {
-            const perPage = Number(req.query['count']) || 10;  // Default perPage to 10 if not provided
-            const reqPage = Math.max(Number(req.query['page']) || 1, 1); // Ensure page is at least 1
+            const {
+                count: perPage,
+                page: reqPage,
+                following: isFollowing,
+                search: searchQuery,
+                selectedUsers
+            } = req.body || {};
+            // const perPage = Number(req.query['count']) || 10;  // Default perPage to 10 if not provided
+            // const reqPage = Math.max(Number(req.query['page']) || 1, 1); // Ensure page is at least 1
             // todo: require fix - following not working
-            const isFollowing = req.query['following'] === 'true';  // Convert to boolean
-            const searchQuery = req.query['search'] ? String(req.query['search']) : null;
+            // const isFollowing = req.query['following'] === 'true';  // Convert to boolean
+            // const searchQuery = req.query['search'] ? String(req.query['search']) : null;
 
             const filter: any = {};
 
