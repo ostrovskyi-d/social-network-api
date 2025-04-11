@@ -27,14 +27,17 @@ class UserController {
                 selectedUsers
             } = req.body || {};
             const {sub: tokenOwnerId}: any = await getUserIdByToken(req.headers.authorization);
-            console.warn('tokenOwnerId: ', tokenOwnerId);
             const perPage = Number(count) || 10;  // Default perPage to 10 if not provided
             const reqPage = Math.max(Number(page) || 1, 1); // Ensure page is at least 1
-            // todo: require fix - following not working
             const isFollowing = following === 'true';  // Convert to boolean
             const searchQuery = search ? String(search) : null;
 
             const filter: any = {};
+
+            if(selectedUsers && selectedUsers.length) {
+                const mappedUsers = selectedUsers.map((userId: any) => new mongoose.Types.ObjectId(userId))
+                filter._id = {$in: mappedUsers};
+            }
 
             // Apply search filter if searchQuery is present
             if (searchQuery) {
@@ -50,10 +53,15 @@ class UserController {
             const usersTotal = await User.countDocuments(filter);
             const totalPages = Math.ceil(usersTotal / perPage);
 
+            const populateCondition: any = selectedUsers
+                ? {path: 'followedBy following', select: 'name photos'}
+                : null;
+
             // Fetch users with applied filters and pagination
             const users = await User.find(filter,  '-posts -likedPosts')
                 .skip((reqPage - 1) * perPage)
                 .limit(perPage)
+                .populate(populateCondition)
                 .sort({createdAt: -1})
 
             log.info(`Users are successfully found. Total: ${users.length}`);
