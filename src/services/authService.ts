@@ -1,24 +1,12 @@
 // @ts-ignore
 import {getConfig} from '../config';
-import UserController from '../controllers/UserController/UserController'
 import {verify} from "jsonwebtoken";
 import {expressjwt} from "express-jwt";
 import log from "../heplers/logger";
 
 const config = getConfig();
 const {AUTH} = config;
-const User = new UserController();
 
-// const isRevoked = async (req: any, payload: any, done: any) => {
-//     const user = await User.getById(payload.sub);
-//
-//     // revoke token if user no longer exists
-//     if (!user) {
-//         return done(null, true);
-//     }
-//
-//     done();
-// };
 
 const jwt = () => {
     return expressjwt({

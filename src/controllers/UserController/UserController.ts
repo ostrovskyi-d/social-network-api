@@ -1,6 +1,6 @@
 import {getConfig} from "../../config";
 import User from '../../models/UserModel';
-import jwt, {JsonWebTokenError} from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import {getUserIdByToken} from "../../services/authService";
 import PostModel from "../../models/PostModel";
 import {uploadFile} from "../../services/uploadService";
