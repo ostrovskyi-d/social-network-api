@@ -11,6 +11,7 @@ import {errorTypes} from "../../consts/errorTypes";
 import mongoose from "mongoose";
 import {catchAsync} from "../../decorators/catchAsync";
 import {InvalidRequestError, NotFoundError, ServerError} from "../../services/errorService";
+import {usersFilters} from "../../consts/usersFilters";
 
 const config = getConfig();
 const S3_PATH = config.S3.S3_PATH;
@@ -25,14 +26,13 @@ class UserController {
         const {
             count,
             page,
-            following,
             search,
-            selectedUsers
-        } = req.body || {};
+            selectedUsers,
+            filters
+        }: any = req.body;
         const {sub: tokenOwnerId}: any = await getUserIdByToken(req.headers.authorization);
         const perPage = Number(count) || 10;  // Default perPage to 10 if not provided
         const reqPage = Math.max(Number(page) || 1, 1); // Ensure page is at least 1
-        const isFollowing = following === 'true';  // Convert to boolean
         const searchQuery = search ? String(search) : null;
 
         const filter: any = {};
@@ -48,8 +48,13 @@ class UserController {
         }
 
         // Apply following filter if isFollowing is true
-        if (isFollowing) {
+        if (filters?.includes(usersFilters.following)) {
             filter.followedBy = new mongoose.Types.ObjectId(tokenOwnerId as string);
+        }
+
+        if (filters?.includes(usersFilters.followed)) {
+            const tokenUser = await User.findById(tokenOwnerId);
+            filter._id = {$in: tokenUser?.following || []};
         }
 
         // Get total user count with applied filters

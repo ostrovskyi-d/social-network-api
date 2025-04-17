@@ -3,6 +3,10 @@ import colors from "colors";
 import log from "../../heplers/logger";
 import {errorTypes} from "../../consts/errorTypes";
 import {NotFoundError} from "../../services/errorService";
+import mongoose from "mongoose";
+import {getUserIdByToken} from "../../services/authService";
+import {postsFilters} from "../../consts/postsFilters";
+import UserModel from "../../models/UserModel";
 
 
 const {
@@ -48,13 +52,30 @@ const getPostsFromFilters = async ({
     log.info("totalPages: ", result.totalPages);
     return result;
 }
-const getPagedPostsHandler = async (body: any = 1) => {
+const getPagedPostsHandler = async (req: any) => {
+    const {body, headers} = req || {};
     const perPage = Number(body['count']) || 10;
     const reqPage = Math.max(Number(body['page']) || 1, 1);
     const searchQuery = body['search'] ? String(body['search']) : null;
+    const filters = body['filters'] ?? null;
+
+    const {sub: tokenOwnerId} = await getUserIdByToken(headers.authorization);
+
     const filter: any = {};
 
-    // todo: fix, not working
+    if (filters.includes(postsFilters.followed)) {
+        const tokenUser = await UserModel.findById(tokenOwnerId);
+        filter.author = {$in: tokenUser?.following || []};
+    }
+
+    if (filters.includes(postsFilters.mine)) {
+        filter.author = {$in: [tokenOwnerId]};
+    }
+
+    if (filters.includes(postsFilters.liked)) {
+        filter['likes.users'] = new mongoose.Types.ObjectId(tokenOwnerId as string);
+    }
+
     if (searchQuery) {
         filter.title = {$regex: searchQuery, $options: 'i'};
     }
@@ -65,15 +86,20 @@ const getPagedPostsHandler = async (body: any = 1) => {
     const pagedPosts = await PostModel.find(filter)
         .skip(perPage * reqPage - perPage)
         .limit(+perPage)
-        // .populate({path: 'author', select: '-likedPosts'})
+        // todo: ask about next line, mb it will be useful in future?
+        // .populate({path: 'author', select: 'photos name'})
         .sort({createdAt: -1})
 
-    if (!pagedPosts.length) {
+    if (!pagedPosts) {
         throw new NotFoundError('Posts were not found');
     }
 
+    const message = !pagedPosts.length
+        ? `No posts were found`
+        : `Posts were successfully found`;
+
     return {
-        message: `Posts were successfully found`,
+        message,
         data: {
             postsTotal: postsTotal,
             totalPages,

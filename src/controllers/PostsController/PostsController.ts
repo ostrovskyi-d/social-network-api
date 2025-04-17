@@ -1,4 +1,3 @@
-import colors from "colors";
 import UserModel from "../../models/UserModel";
 import PostModel from "../../models/PostModel";
 import {getUserIdByToken} from "../../services/authService";
@@ -13,11 +12,6 @@ import {errorTypes} from "../../consts/errorTypes";
 import {NotFoundError} from "../../services/errorService";
 import {catchAsync} from "../../decorators/catchAsync";
 
-const {
-    brightCyan: dbColor,
-    red: errorColor,
-}: any = colors;
-
 const {S3: {S3_PATH}} = getConfig();
 
 class PostsController {
@@ -27,23 +21,10 @@ class PostsController {
         log.info('-- PostsController method ".index" called --');
         log.info(`body: ${JSON.stringify(req?.body)}`);
 
-        try {
-            const result = await getPagedPostsHandler(req.body);
-            log.info(`response: ${JSON.stringify(result)}`);
+        const result = await getPagedPostsHandler(req);
 
-            res.status(200).json(result);
-        } catch (err: any) {
-            log.error(err);
-
-            if (err instanceof NotFoundError) {
-                res.status(404).json(err);
-            } else {
-                res.status(500).json({
-                    errorType: errorTypes.ServerError,
-                    message: err.message,
-                })
-            }
-        }
+        log.info(`Successfully found, return result`);
+        res.status(200).json(result);
     }
 
     async create(req: Request, res: Response) {
@@ -55,7 +36,7 @@ class PostsController {
 
         file && await uploadFile(file);
 
-        // Create Ad
+        // Create Post
         const post = new PostModel({
             title: title,
             img: file ? S3_PATH + file.originalname : '',
@@ -65,7 +46,7 @@ class PostsController {
         const savedPost = await saveNewPostToDatabase(post);
 
         if (!!savedPost) {
-            // Update user with ref to this ad
+            // Update user with ref to this post
             await updatePostOwner(post, author);
             res.json(savedPost)
         }
@@ -77,7 +58,7 @@ class PostsController {
 
         const {postId} = req.body;
 
-        // Extract user ID from token
+        // Extract user ID from a token
         const {sub: userId}: any = await getUserIdByToken(req.headers.authorization);
 
         // Find user
@@ -110,16 +91,16 @@ class PostsController {
         await PostModel.findOne({_id: req.params.id}).populate({
             path: 'author',
             select: '-likedPosts'
-        }).then((ad: any) => {
-            if (!ad) {
+        }).then((post: any) => {
+            if (!post) {
                 throw new NotFoundError(`Post with id ${req.params.id} not found in DB`)
             }
 
-            log.info(dbColor(`Post with id ${req.params.id} found successfully in DB`))
+            log.info(`Post with id ${req.params.id} found successfully in DB`)
 
             res.json({
                 message: `Post with id ${req.params.id} found successfully in DB`,
-                ad
+                post
             })
         })
     }
@@ -128,7 +109,7 @@ class PostsController {
         log.info('-- PostsController method ".update" called --');
         const {params} = req || {};
         const paramsId = params.id;
-        let file;
+        let file: any;
 
         try {
             if (req.file) {
@@ -141,7 +122,6 @@ class PostsController {
         await PostModel.findByIdAndUpdate(paramsId, {
             $set: {
                 ...req.body,
-                // @ts-ignore
                 img: file ? S3_PATH + file.originalname : ''
             }
         }, (err: any) => {
@@ -149,7 +129,7 @@ class PostsController {
                 res.json({
                     message: `Post with id ${req.params.id} is successfully updated`
                 })
-                log.info(dbColor(`Post with id ${req.params.id} is successfully updated`, req.body))
+                log.info(`Post with id ${req.params.id} is successfully updated`, req.body)
             }
         })
     }
@@ -168,7 +148,7 @@ class PostsController {
                 message: `Post with id ${req.params.id} successfully deleted from DB`,
                 ads: userAds
             })
-            log.info(dbColor(`Post with id ${req.params.id} successfully deleted from DB`))
+            log.info(`Post with id ${req.params.id} successfully deleted from DB`)
         } else {
             res.json({
                 errorType: errorTypes.NotFound,

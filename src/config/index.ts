@@ -44,8 +44,6 @@ export const getConfig: Function = () => {
         log.error('No configuration initialized');
         return null;
     } else {
-        log.info('Configuration was initialized successfully.');
-
         return config;
     }
 };
