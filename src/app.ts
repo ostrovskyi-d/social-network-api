@@ -13,6 +13,7 @@ import UserController from "./controllers/UserController/UserController";
 import ChatController from "./controllers/ChatController/ChatController";
 import jwt from './services/authService';
 import connectToDB from "./services/dbConnectService";
+import {errorHandler} from "./middlewares/errorHandler";
 
 const {brightGreen: apiColor}: any = colors;
 const config = getConfig();
@@ -34,6 +35,7 @@ app.use(morgan('combined'));
 app.use(cors());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
+
 config.AUTH.isActive && app.use(jwt());
 
 app.get('/', (req, res) => {
@@ -43,13 +45,14 @@ app.get('/', (req, res) => {
 });
 
 
+
 // IMPORTANT: keep order of routes
 // get posts list paginated
-app.get('/posts?:page', Post.index);
+app.post('/posts', Post.index);
 // get post by id
 app.get('/posts/:id', Post.read);
 // create new post
-app.post('/posts', upload.single('img'), Post.create);
+app.post('/posts/new', upload.single('img'), Post.create);
 // @ts-ignore
 // post like-dislike - toggle logic
 app.put('/posts/like', Post.like);
@@ -92,6 +95,9 @@ app.delete('/clear-users', User._clearUsersCollection);
 // chat functionality (in development)
 app.post('/conversation', Chat.initConversation);
 app.get('/conversation/:userId', Chat.getUserConversation);
+
+// @ts-ignore
+app.use(errorHandler);
 
 const start = async () => {
     log.info(apiColor('--app Server is staring...'))

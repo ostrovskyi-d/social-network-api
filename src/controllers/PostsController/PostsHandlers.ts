@@ -2,6 +2,7 @@ import PostModel from "../../models/PostModel";
 import colors from "colors";
 import log from "../../heplers/logger";
 import {errorTypes} from "../../consts/errorTypes";
+import {NotFoundError} from "../../services/errorService";
 
 
 const {
@@ -47,44 +48,40 @@ const getPostsFromFilters = async ({
     log.info("totalPages: ", result.totalPages);
     return result;
 }
-const getPagedPostsHandler = async (queryParams: any = 1) => {
-    try {
-        const perPage = Number(queryParams.query['count']) || 10;
-        const reqPage = Math.max(Number(queryParams.query['page']) || 1, 1);
-        const searchQuery = queryParams.query['search'] ? String(queryParams.query['search']) : null;
-        const filter: any = {};
+const getPagedPostsHandler = async (body: any = 1) => {
+    const perPage = Number(body['count']) || 10;
+    const reqPage = Math.max(Number(body['page']) || 1, 1);
+    const searchQuery = body['search'] ? String(body['search']) : null;
+    const filter: any = {};
 
-        // todo: fix, not working
-        if (searchQuery) {
-            filter.title = {$regex: searchQuery, $options: 'i'};
-        }
-
-        const postsTotal = await PostModel.countDocuments(filter);
-        const totalPages = Math.ceil(postsTotal / perPage);
-
-        const pagedPosts = await PostModel.find(filter)
-            .skip(perPage * reqPage - perPage)
-            .limit(+perPage)
-            // .populate({path: 'author', select: '-likedPosts'})
-            .sort({createdAt: -1})
-
-        return {
-            message: `Posts were successfully found`,
-            data: {
-                postsTotal: postsTotal,
-                totalPages,
-                perPage,
-                currentPage: reqPage,
-                posts: pagedPosts,
-            }
-        };
-
-    } catch (err: any) {
-        log.info(errorColor(err));
-        return {
-            message: err.message || 'Unknown error',
-        }
+    // todo: fix, not working
+    if (searchQuery) {
+        filter.title = {$regex: searchQuery, $options: 'i'};
     }
+
+    const postsTotal = await PostModel.countDocuments(filter);
+    const totalPages = Math.ceil(postsTotal / perPage);
+
+    const pagedPosts = await PostModel.find(filter)
+        .skip(perPage * reqPage - perPage)
+        .limit(+perPage)
+        // .populate({path: 'author', select: '-likedPosts'})
+        .sort({createdAt: -1})
+
+    if (!pagedPosts.length) {
+        throw new NotFoundError('Posts were not found');
+    }
+
+    return {
+        message: `Posts were successfully found`,
+        data: {
+            postsTotal: postsTotal,
+            totalPages,
+            perPage,
+            currentPage: reqPage,
+            posts: pagedPosts,
+        }
+    };
 }
 
 
@@ -95,7 +92,7 @@ const saveNewPostToDatabase = async (post: any) => {
             log.info(dbColor(`Post with id ${post._id} successfully saved to DB`))
             return {
                 message: `Post with id ${post._id} successfully saved to DB`,
-                post
+                data: post
             }
         }
     } catch (err: any) {

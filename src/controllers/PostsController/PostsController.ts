@@ -10,6 +10,8 @@ import {Request, Response} from 'express';
 import log from "../../heplers/logger";
 import User from "../../models/UserModel";
 import {errorTypes} from "../../consts/errorTypes";
+import {NotFoundError} from "../../services/errorService";
+import {catchAsync} from "../../decorators/catchAsync";
 
 const {
     brightCyan: dbColor,
@@ -19,30 +21,28 @@ const {
 const {S3: {S3_PATH}} = getConfig();
 
 class PostsController {
+    @catchAsync()
 
     async index(req: Request, res: Response) {
         log.info('-- PostsController method ".index" called --');
-        log.info(`query: ${JSON.stringify(req?.query)}`);
+        log.info(`body: ${JSON.stringify(req?.body)}`);
 
         try {
-            const result = await getPagedPostsHandler(req);
+            const result = await getPagedPostsHandler(req.body);
             log.info(`response: ${JSON.stringify(result)}`);
 
-            if (!result) {
-                res.status(404).json({
-                    errorType: errorTypes.NotFound,
-                    message: `Something went wrong, posts are not found`,
-                    posts: result
-                })
-            } else {
-                res.status(200).json(result)
-            }
+            res.status(200).json(result);
         } catch (err: any) {
             log.error(err);
-            res.status(500).json({
-                errorType: errorTypes.ServerError,
-                message: err.message,
-            })
+
+            if (err instanceof NotFoundError) {
+                res.status(404).json(err);
+            } else {
+                res.status(500).json({
+                    errorType: errorTypes.ServerError,
+                    message: err.message,
+                })
+            }
         }
     }
 
@@ -77,82 +77,51 @@ class PostsController {
 
         const {postId} = req.body;
 
-        try {
-            // Extract user ID from token
-            const {sub: userId}: any = await getUserIdByToken(req.headers.authorization);
+        // Extract user ID from token
+        const {sub: userId}: any = await getUserIdByToken(req.headers.authorization);
 
-            // Find user
-            const user: any = await User.findById(userId);
-            if (!user) {
-                log.info('User does not exist');
-                return res.status(404).json({
-                    errorType: errorTypes.NotFound,
-                    message: 'User not found'
-                });
-            }
+        // Find user
+        const user: any = await User.findById(userId);
+        if (!user) throw new NotFoundError('User was not found');
 
-            // Optionally, check if the post exists
-            const post = await PostModel.findById(postId);
-            if (!post) {
-                log.info('Post does not exist');
-                return res.status(404).json({
-                    errorType: errorTypes.NotFound,
-                    message: 'Post not found'
-                });
-            }
+        // Optionally, check if the post exists
+        const post = await PostModel.findById(postId);
+        if (!post) throw new NotFoundError('Post was not found');
 
-            const hasLiked = post.likes.users.includes(userId);
+        const hasLiked = post.likes.users.includes(userId);
 
-            await Promise.all([
-                PostModel.findByIdAndUpdate(postId,
-                    hasLiked ? {$pull: {"likes.users": userId}} : {$addToSet: {"likes.users": userId}}
-                ),
-                User.findByIdAndUpdate(userId,
-                    hasLiked ? {$pull: {likedPosts: postId}} : {$addToSet: {likedPosts: postId}}
-                )
-            ]);
+        await Promise.all([
+            PostModel.findByIdAndUpdate(postId,
+                hasLiked ? {$pull: {"likes.users": userId}} : {$addToSet: {"likes.users": userId}}
+            ),
+            User.findByIdAndUpdate(userId,
+                hasLiked ? {$pull: {likedPosts: postId}} : {$addToSet: {likedPosts: postId}}
+            )
+        ]);
 
-            return res.status(200).json({
-                message: hasLiked ? 'Post unliked successfully' : 'Post liked successfully'
-            });
-        } catch (error) {
-            log.error(error);
-            return res.status(500).json({
-                errorType: errorTypes.ServerError,
-                message: 'Internal server error'
-            });
-        }
+        return res.status(200).json({
+            message: hasLiked ? 'Post unliked successfully' : 'Post liked successfully'
+        });
     }
 
     async read(req: Request, res: Response) {
         log.info('-- PostsController method ".read" called --');
 
-        try {
-            await PostModel.findOne({_id: req.params.id}).populate({
-                path: 'author',
-                select: '-likedPosts'
-            }).then((ad: any) => {
-                if (!ad) {
-                    res.json({
-                        errorType: errorTypes.NotFound,
-                        message: `Post with id ${req.params.id} not found in DB`,
-                    })
-                    log.info(errorColor(`Post with id ${req.params.id} not found in DB`))
-                } else {
-                    res.json({
-                        message: `Post with id ${req.params.id} found successfully in DB`,
-                        ad
-                    })
-                    log.info(dbColor(`Post with id ${req.params.id} found successfully in DB`))
-                }
+        await PostModel.findOne({_id: req.params.id}).populate({
+            path: 'author',
+            select: '-likedPosts'
+        }).then((ad: any) => {
+            if (!ad) {
+                throw new NotFoundError(`Post with id ${req.params.id} not found in DB`)
+            }
+
+            log.info(dbColor(`Post with id ${req.params.id} found successfully in DB`))
+
+            res.json({
+                message: `Post with id ${req.params.id} found successfully in DB`,
+                ad
             })
-        } catch (err) {
-            log.error(err);
-            res.status(500).json({
-                errorType: errorTypes.ServerError,
-                message: 'Internal server error'
-            })
-        }
+        })
     }
 
     async update(req: Request, res: Response) {
@@ -169,34 +138,20 @@ class PostsController {
             log.error(err);
         }
 
-        try {
-            await PostModel.findByIdAndUpdate(paramsId, {
-                $set: {
-                    ...req.body,
-                    // @ts-ignore
-                    img: file ? S3_PATH + file.originalname : ''
-                }
-            }, (err: any) => {
-                if (err) {
-                    res.status(500).json({
-                        errorType: errorTypes.ServerError,
-                        message: `Something went wrong, can't update post`
-                    })
-                    log.info(errorColor(`Error, cannot update Post with id ${req.params.id}: `), err)
-                } else {
-                    res.json({
-                        message: `Post with id ${req.params.id} is successfully updated`
-                    })
-                    log.info(dbColor(`Post with id ${req.params.id} is successfully updated`, req.body))
-                }
-            })
-        } catch (err) {
-            log.error(err);
-            res.status(500).json({
-                errorType: errorTypes.ServerError,
-                message: 'Internal server error'
-            })
-        }
+        await PostModel.findByIdAndUpdate(paramsId, {
+            $set: {
+                ...req.body,
+                // @ts-ignore
+                img: file ? S3_PATH + file.originalname : ''
+            }
+        }, (err: any) => {
+            if (!err) {
+                res.json({
+                    message: `Post with id ${req.params.id} is successfully updated`
+                })
+                log.info(dbColor(`Post with id ${req.params.id} is successfully updated`, req.body))
+            }
+        })
     }
 
     async delete(req: Request, res: Response) {
