@@ -1,4 +1,4 @@
-import { errorTypes } from "../consts/errorTypes";
+import { ErrorTypes } from "../consts/errorTypes";
 
 export class InvalidCredentialsError extends Error {
     errorType: string;
@@ -6,7 +6,7 @@ export class InvalidCredentialsError extends Error {
     constructor(message: string) {
         super(message);
         this.name = 'InvalidCredentialsError';
-        this.errorType = errorTypes.InvalidCredentials;
+        this.errorType = ErrorTypes.InvalidCredentials;
         Object.setPrototypeOf(this, new.target.prototype);
     }
 }
@@ -17,7 +17,7 @@ export class InvalidRequestError extends Error {
     constructor(message: string) {
         super(message);
         this.name = 'InvalidRequestError';
-        this.errorType = errorTypes.InvalidRequest;
+        this.errorType = ErrorTypes.InvalidRequest;
         Object.setPrototypeOf(this, new.target.prototype);
     }
 }
@@ -28,7 +28,7 @@ export class UnauthorizedError extends Error {
     constructor(message: string) {
         super(message);
         this.name = 'UnauthorizedError';
-        this.errorType = errorTypes.Unauthorized;
+        this.errorType = ErrorTypes.Unauthorized;
         Object.setPrototypeOf(this, new.target.prototype);
     }
 }
@@ -39,7 +39,7 @@ export class ForbiddenError extends Error {
     constructor(message: string) {
         super(message);
         this.name = 'ForbiddenError';
-        this.errorType = errorTypes.Forbidden;
+        this.errorType = ErrorTypes.Forbidden;
         Object.setPrototypeOf(this, new.target.prototype);
     }
 }
@@ -50,7 +50,7 @@ export class NotFoundError extends Error {
     constructor(message: string) {
         super(message);
         this.name = 'NotFoundError';
-        this.errorType = errorTypes.NotFound;
+        this.errorType = ErrorTypes.NotFound;
         Object.setPrototypeOf(this, new.target.prototype);
     }
 }
@@ -61,7 +61,7 @@ export class ConflictError extends Error {
     constructor(message: string) {
         super(message);
         this.name = 'ConflictError';
-        this.errorType = errorTypes.Conflict;
+        this.errorType = ErrorTypes.Conflict;
         Object.setPrototypeOf(this, new.target.prototype);
     }
 }
@@ -72,7 +72,7 @@ export class ServerError extends Error {
     constructor(message: string) {
         super(message);
         this.name = 'ServerError';
-        this.errorType = errorTypes.ServerError;
+        this.errorType = ErrorTypes.ServerError;
         Object.setPrototypeOf(this, new.target.prototype);
     }
 }

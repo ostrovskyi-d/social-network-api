@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { errorTypes } from '../consts/errorTypes';
+import { ErrorTypes } from '../consts/errorTypes';
 import {
     ForbiddenError,
     InvalidCredentialsError,
@@ -58,14 +58,14 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
 
     if (err instanceof JsonWebTokenError) {
         res.status(401).json({
-            errorType: errorTypes.Unauthorized,
+            errorType: ErrorTypes.Unauthorized,
             message: err.message
         })
     }
 
     // Fallback for unknown errors
     return res.status(500).json({
-        errorType: errorTypes.ServerError,
+        errorType: ErrorTypes.ServerError,
         message: err?.message || 'Internal Server Error',
     });
 }

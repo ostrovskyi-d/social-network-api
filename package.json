@@ -35,6 +35,7 @@
     "start": "ts-node-dev --transpile-only --respawn src/app.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.787.0",
     "@babel/cli": "^7.27.0",
     "@babel/core": "^7.26.10",
     "@babel/node": "^7.26.0",

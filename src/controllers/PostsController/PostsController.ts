@@ -8,7 +8,7 @@ import {updatePostOwner} from "../UserController/UserHandlers";
 import {Request, Response} from 'express';
 import log from "../../heplers/logger";
 import User from "../../models/UserModel";
-import {errorTypes} from "../../consts/errorTypes";
+import {ErrorTypes} from "../../consts/errorTypes";
 import {NotFoundError} from "../../services/errorService";
 import {catchAsync} from "../../decorators/catchAsync";
 
@@ -151,7 +151,7 @@ class PostsController {
             log.info(`Post with id ${req.params.id} successfully deleted from DB`)
         } else {
             res.json({
-                errorType: errorTypes.NotFound,
+                errorType: ErrorTypes.NotFound,
                 message: `Error, can\'t delete Post with id ${req.params.id} from DB`
             })
             log.error(`Error, can\'t delete Post with id ${req.params.id} from DB`)

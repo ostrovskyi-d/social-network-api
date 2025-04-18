@@ -1,4 +1,4 @@
-export enum errorTypes {
+export enum ErrorTypes {
     InvalidCredentials = 'INVALID_CREDENTIALS',
     InvalidRequest = 'INVALID_REQUEST',
     Unauthorized = 'UNAUTHORIZED',

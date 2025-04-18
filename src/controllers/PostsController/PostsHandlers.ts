@@ -1,11 +1,11 @@
 import PostModel from "../../models/PostModel";
 import colors from "colors";
 import log from "../../heplers/logger";
-import {errorTypes} from "../../consts/errorTypes";
+import {ErrorTypes} from "../../consts/errorTypes";
 import {NotFoundError} from "../../services/errorService";
 import mongoose from "mongoose";
 import {getUserIdByToken} from "../../services/authService";
-import {postsFilters} from "../../consts/postsFilters";
+import {PostsFilter} from "../../consts/postsFilter";
 import UserModel from "../../models/UserModel";
 
 
@@ -63,16 +63,16 @@ const getPagedPostsHandler = async (req: any) => {
 
     const filter: any = {};
 
-    if (filters.includes(postsFilters.followed)) {
+    if (filters.includes(PostsFilter.Followed)) {
         const tokenUser = await UserModel.findById(tokenOwnerId);
         filter.author = {$in: tokenUser?.following || []};
     }
 
-    if (filters.includes(postsFilters.mine)) {
+    if (filters.includes(PostsFilter.Mine)) {
         filter.author = {$in: [tokenOwnerId]};
     }
 
-    if (filters.includes(postsFilters.liked)) {
+    if (filters.includes(PostsFilter.Liked)) {
         filter['likes.users'] = new mongoose.Types.ObjectId(tokenOwnerId as string);
     }
 
@@ -124,7 +124,7 @@ const saveNewPostToDatabase = async (post: any) => {
     } catch (err: any) {
         log.info(errorColor(err))
         return {
-            errorType: errorTypes.ServerError,
+            errorType: ErrorTypes.ServerError,
             message: "Error: " + err.message,
         }
     }

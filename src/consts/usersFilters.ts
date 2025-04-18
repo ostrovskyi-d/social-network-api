@@ -1,4 +1,4 @@
-export enum usersFilters {
-    followed = 'followed',
-    following = 'following',
+export enum UsersFilters {
+    Followed = 'Followed',
+    Following = 'Following',
 }

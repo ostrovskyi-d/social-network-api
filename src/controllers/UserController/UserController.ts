@@ -7,11 +7,11 @@ import {uploadFile} from "../../services/uploadService";
 import {Request, Response} from 'express';
 import log from "../../heplers/logger";
 import bcrypt from 'bcrypt';
-import {errorTypes} from "../../consts/errorTypes";
+import {ErrorTypes} from "../../consts/errorTypes";
 import mongoose from "mongoose";
 import {catchAsync} from "../../decorators/catchAsync";
 import {InvalidRequestError, NotFoundError, ServerError} from "../../services/errorService";
-import {usersFilters} from "../../consts/usersFilters";
+import {UsersFilters} from "../../consts/usersFilters";
 
 const config = getConfig();
 const S3_PATH = config.S3.S3_PATH;
@@ -48,11 +48,11 @@ class UserController {
         }
 
         // Apply following filter if isFollowing is true
-        if (filters?.includes(usersFilters.following)) {
+        if (filters?.includes(UsersFilters.Following)) {
             filter.followedBy = new mongoose.Types.ObjectId(tokenOwnerId as string);
         }
 
-        if (filters?.includes(usersFilters.followed)) {
+        if (filters?.includes(UsersFilters.Followed)) {
             const tokenUser = await User.findById(tokenOwnerId);
             filter._id = {$in: tokenUser?.following || []};
         }
@@ -148,7 +148,7 @@ class UserController {
 
         if (!user) {
             return res.status(401).json({
-                errorType: errorTypes.InvalidCredentials,
+                errorType: ErrorTypes.InvalidCredentials,
                 message: "Invalid username or password"
             });
         }
@@ -159,7 +159,7 @@ class UserController {
 
         if (!passwordMatch) {
             return res.status(401).json({
-                errorType: errorTypes.InvalidCredentials,
+                errorType: ErrorTypes.InvalidCredentials,
                 message: "Invalid username or password"
             });
         }
@@ -221,6 +221,8 @@ class UserController {
         const {body, headers, files} = req;
 
         const {sub: tokenUserId}: any = await getUserIdByToken(headers.authorization);
+        log.info(`tokenUserId: ${tokenUserId}`);
+
         const userId = tokenUserId;
 
         // Files will be available under files.avatar[0], files.background[0]
