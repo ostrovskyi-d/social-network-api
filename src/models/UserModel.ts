@@ -2,10 +2,9 @@ import mongoose from 'mongoose';
 
 const Schema = mongoose.Schema;
 
-interface User {
+export interface UserInterface {
     name: string;
     phone?: string;
-    avatar?: string;
     posts?: Array<string>,
     likedPosts?: Array<string>,
     followedBy?: Array<string>,
@@ -14,7 +13,6 @@ interface User {
     job?: string,
     email: string;
     password: string;
-    isFollowedByMe: boolean;
     contacts?: {
         linkedIn?: string,
         github?: string;
@@ -27,7 +25,7 @@ interface User {
     }
 }
 
-const userSchema = new Schema<User>(
+const userSchema = new Schema<UserInterface>(
     {
         name: {type: String, required: true,},
         email: {type: String, required: true, unique: true},
@@ -64,4 +62,4 @@ const userSchema = new Schema<User>(
 );
 
 
-export default mongoose.model<User>('User', userSchema);
+export default mongoose.model<UserInterface>('User', userSchema);

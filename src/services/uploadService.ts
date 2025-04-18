@@ -40,9 +40,10 @@ export const uploadFile = async (file: Express.Multer.File) => {
 
             // If it exists, return its URL directly
             return {
-                Location: `${S3_PATH}${hashedFileName}`,
-                Key: hashedFileName
-            };
+                uploaded: false,
+                location: `${S3_PATH}${hashedFileName}`,  // Constructed URL
+                key: hashedFileName,
+            }
         } catch (err: any) {
             if (err.name !== 'NotFound' && err.$metadata?.httpStatusCode !== 404) {
                 log.error(err);
@@ -55,8 +56,9 @@ export const uploadFile = async (file: Express.Multer.File) => {
         await s3Client.send(putCommand);
 
         return {
-            Location: `${S3_PATH}${hashedFileName}`,  // Constructed URL
-            Key: hashedFileName
+            uploaded: true,
+            location: `${S3_PATH}${hashedFileName}`,  // Constructed URL
+            key: hashedFileName,
         };
     } catch (err) {
         log.error(err);

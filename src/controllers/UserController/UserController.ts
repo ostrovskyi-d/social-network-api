@@ -1,5 +1,5 @@
 import {getConfig} from "../../config";
-import User from '../../models/UserModel';
+import User, {UserInterface} from '../../models/UserModel';
 import jwt from 'jsonwebtoken';
 import {getUserIdByToken} from "../../services/authService";
 import PostModel from "../../models/PostModel";
@@ -12,6 +12,7 @@ import mongoose from "mongoose";
 import {catchAsync} from "../../decorators/catchAsync";
 import {InvalidRequestError, NotFoundError, ServerError} from "../../services/errorService";
 import {UsersFilters} from "../../consts/usersFilters";
+import {userMapping} from "../../mappings/userMapping";
 
 const config = getConfig();
 const S3_PATH = config.S3.S3_PATH;
@@ -47,7 +48,7 @@ class UserController {
             filter.name = {$regex: searchQuery, $options: 'i'};
         }
 
-        // Apply following filter if isFollowing is true
+        // Apply the following filter if isFollowing is true
         if (filters?.includes(UsersFilters.Following)) {
             filter.followedBy = new mongoose.Types.ObjectId(tokenOwnerId as string);
         }
@@ -165,6 +166,7 @@ class UserController {
         }
 
         const token = jwt.sign({sub: user._id}, JWT_SECRET as string, {expiresIn: '7d'});
+
         log.info("Bearer token: ", token);
         log.info("User ID: ", user._id);
 
@@ -221,6 +223,8 @@ class UserController {
         const {body, headers, files} = req;
 
         const {sub: tokenUserId}: any = await getUserIdByToken(headers.authorization);
+        const tokenUser: any = await User.findById(tokenUserId);
+
         log.info(`tokenUserId: ${tokenUserId}`);
 
         const userId = tokenUserId;
@@ -229,30 +233,35 @@ class UserController {
         const avatarFile = (files as any)?.avatar?.[0];
         const backgroundFile = (files as any)?.background?.[0];
 
-        let avatarLink = '';
-        let backgroundLink = '';
+        let avatarLink: any = tokenUser.photos.avatar || '';
+        let backgroundLink = tokenUser.photos.background || '';
+
+        console.warn(tokenUser);
+
+        console.warn('avatarLink: ', avatarLink);
+        console.warn('backgroundLink: ', backgroundLink);
 
         if (avatarFile) {
-            const uploaded = await uploadFile(avatarFile);
-            avatarLink = uploaded?.Location || `${S3_PATH}${avatarFile.originalname}`;
-            log.info(`Avatar file uploaded: ${avatarLink}`);
+            const result: any = await uploadFile(avatarFile);
+            if (result.uploaded) {
+                avatarLink = result?.location || `${S3_PATH}${avatarFile.originalname}`;
+                log.info(`Avatar file uploaded: ${avatarLink}`);
+            } else {
+                log.info(`Avatar not uploaded, file already exists; file location: ${result.location}`);
+            }
         }
 
         if (backgroundFile) {
-            const uploaded = await uploadFile(backgroundFile);
-            backgroundLink = uploaded?.Location || `${S3_PATH}${backgroundFile.originalname}`;
-            log.info(`Background file uploaded: ${avatarLink}`);
+            const result = await uploadFile(backgroundFile);
+            if (result.uploaded) {
+                backgroundLink = result?.location || `${S3_PATH}${backgroundFile.originalname}`;
+                log.info(`Background file uploaded: ${avatarLink}`);
+            } else {
+                log.info(`Background not uploaded, file already exists; file location: ${result.location}`);
+            }
         }
 
-        const updateData: any = {
-            ...body,
-            contacts: {
-                instagram: body.instagram,
-                facebook: body.facebook,
-                github: body.github,
-                linkedIn: body.linkedIn,
-            }
-        };
+        const updateData: UserInterface = userMapping(body)
 
         if (avatarLink || backgroundLink) {
             updateData.photos = {};
@@ -351,10 +360,6 @@ class UserController {
                 message: "ONLY FOR DEV ENV: All users are successfully removed from db"
             })
         });
-    }
-
-    async getById(id: any) {
-        return User.findById({_id: id});
     }
 }
 
