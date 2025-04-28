@@ -76,3 +76,5 @@ export class ServerError extends Error {
         Object.setPrototypeOf(this, new.target.prototype);
     }
 }
+
+export class CastError extends InvalidRequestError {}

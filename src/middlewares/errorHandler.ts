@@ -6,13 +6,20 @@ import {
     InvalidRequestError,
     NotFoundError,
     UnauthorizedError,
-    ConflictError
+    ConflictError, CastError
 } from '../services/errorService';
 import log from '../heplers/logger';
 import {JsonWebTokenError} from "jsonwebtoken";
 
 export function errorHandler(err: any, req: Request, res: Response, next: NextFunction) {
     log.error(err);
+
+    if(err instanceof CastError) {
+        return res.status(400).json({
+            errorType: ErrorTypes.InvalidRequest,
+            message: err.message,
+        });
+    }
 
     if (err instanceof NotFoundError) {
         return res.status(404).json({

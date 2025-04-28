@@ -318,14 +318,21 @@ class UserController {
     async readById(req: Request, res: Response) {
         log.info('-- UserController method ".readById" called --');
 
-        const user: any = await User.findById(req.params.id, '-likedPosts -posts');
+        const id = req.params.id;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            const errorString = `Invalid user id format: ${id}`;
+            throw new NotFoundError(errorString);
+        }
+
+        const user: any = await User.findById(id, '-likedPosts -posts');
 
         if (!user) {
-            const errorString = `Can't find user with id: ${req.params.id} in DB`
+            const errorString = `Can't find user with id: ${id} in DB`
             throw new NotFoundError(errorString)
         }
 
-        log.info(`User with ID: ${req.params.id} is successfully found in DB`);
+        log.info(`User with ID: ${id} is successfully found in DB`);
 
         res.status(200).json({
             message: 'User is successfully found',
