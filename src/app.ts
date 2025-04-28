@@ -13,7 +13,6 @@ import UserController from "./controllers/UserController/UserController";
 import ChatController from "./controllers/ChatController/ChatController";
 import jwt from './services/authService';
 import connectToDB from "./services/dbConnectService";
-import {errorHandler} from "./middlewares/errorHandler";
 
 const {brightGreen: apiColor}: any = colors;
 const config = getConfig();
@@ -95,9 +94,6 @@ app.delete('/clear-users', User._clearUsersCollection);
 // chat functionality (in development)
 app.post('/conversation', Chat.initConversation);
 app.get('/conversation/:userId', Chat.getUserConversation);
-
-// @ts-ignore
-app.use(errorHandler);
 
 const start = async () => {
     log.info(apiColor('--app Server is staring...'))

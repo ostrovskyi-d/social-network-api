@@ -10,83 +10,105 @@ import log from "../../heplers/logger";
 import User from "../../models/UserModel";
 import {ErrorTypes} from "../../consts/errorTypes";
 import {NotFoundError} from "../../services/errorService";
-import {catchAsync} from "../../decorators/catchAsync";
 
 const {S3: {S3_PATH}} = getConfig();
 
 class PostsController {
-    @catchAsync()
-
     async index(req: Request, res: Response) {
         log.info('-- PostsController method ".index" called --');
         log.info(`body: ${JSON.stringify(req?.body)}`);
+        try {
+            const result = await getPagedPostsHandler(req);
 
-        const result = await getPagedPostsHandler(req);
-
-        log.info(`Successfully found, return result`);
-        res.status(200).json(result);
+            log.info(`Successfully found, return result`);
+            res.status(200).json(result);
+        } catch (err) {
+            log.error(err);
+            res.status(500).json({
+                message: 'Server error',
+                errorType: ErrorTypes.ServerError
+            })
+        }
     }
 
     async create(req: Request, res: Response) {
         log.info('-- PostsController method ".create" called --');
 
-        const {file, body, headers: {authorization}} = req || {};
-        const {title} = body || {};
-        const {sub: author}: any = await getUserIdByToken(authorization);
+        try {
 
-        file && await uploadFile(file);
+            const {file, body, headers: {authorization}} = req || {};
+            const {title} = body || {};
+            const {sub: author}: any = await getUserIdByToken(authorization);
 
-        // Create Post
-        const post = new PostModel({
-            title: title,
-            img: file ? S3_PATH + file.originalname : '',
-            author: author,
-        });
+            file && await uploadFile(file);
 
-        const savedPost = await saveNewPostToDatabase(post);
+            // Create Post
+            const post = new PostModel({
+                title: title,
+                img: file ? S3_PATH + file.originalname : '',
+                author: author,
+            });
 
-        if (!!savedPost) {
-            // Update user with ref to this post
-            await updatePostOwner(post, author);
-            res.json(savedPost)
+            const savedPost = await saveNewPostToDatabase(post);
+
+            if (!!savedPost) {
+                // Update user with ref to this post
+                await updatePostOwner(post, author);
+                res.json(savedPost)
+            }
+        } catch (err) {
+            log.error(err);
+            res.status(500).json({
+                message: 'Server error',
+                errorType: ErrorTypes.ServerError
+            })
         }
     }
 
 
     async like(req: Request, res: Response) {
         log.info('-- PostsController method "like" called --');
+        try {
 
-        const {postId} = req.body;
+            const {postId} = req.body;
 
-        // Extract user ID from a token
-        const {sub: userId}: any = await getUserIdByToken(req.headers.authorization);
+            // Extract user ID from a token
+            const {sub: userId}: any = await getUserIdByToken(req.headers.authorization);
 
-        // Find user
-        const user: any = await User.findById(userId);
-        if (!user) throw new NotFoundError('User was not found');
+            // Find user
+            const user: any = await User.findById(userId);
+            if (!user) throw new NotFoundError('User was not found');
 
-        // Optionally, check if the post exists
-        const post = await PostModel.findById(postId);
-        if (!post) throw new NotFoundError('Post was not found');
+            // Optionally, check if the post exists
+            const post = await PostModel.findById(postId);
+            if (!post) throw new NotFoundError('Post was not found');
 
-        const hasLiked = post.likes.users.includes(userId);
+            const hasLiked = post.likes.users.includes(userId);
 
-        await Promise.all([
-            PostModel.findByIdAndUpdate(postId,
-                hasLiked ? {$pull: {"likes.users": userId}} : {$addToSet: {"likes.users": userId}}
-            ),
-            User.findByIdAndUpdate(userId,
-                hasLiked ? {$pull: {likedPosts: postId}} : {$addToSet: {likedPosts: postId}}
-            )
-        ]);
+            await Promise.all([
+                PostModel.findByIdAndUpdate(postId,
+                    hasLiked ? {$pull: {"likes.users": userId}} : {$addToSet: {"likes.users": userId}}
+                ),
+                User.findByIdAndUpdate(userId,
+                    hasLiked ? {$pull: {likedPosts: postId}} : {$addToSet: {likedPosts: postId}}
+                )
+            ]);
 
-        return res.status(200).json({
-            message: hasLiked ? 'Post unliked successfully' : 'Post liked successfully'
-        });
+            return res.status(200).json({
+                message: hasLiked ? 'Post unliked successfully' : 'Post liked successfully'
+            });
+        } catch (err) {
+            log.error(err);
+            res.status(500).json({
+                message: 'Server error',
+                errorType: ErrorTypes.ServerError
+            })
+        }
     }
 
     async read(req: Request, res: Response) {
         log.info('-- PostsController method ".read" called --');
+        try {
 
         await PostModel.findOne({_id: req.params.id}).populate({
             path: 'author',
@@ -103,10 +125,19 @@ class PostsController {
                 post
             })
         })
+        } catch (err) {
+            log.error(err);
+            res.status(500).json({
+                message: 'Server error',
+                errorType: ErrorTypes.ServerError
+            })
+        }
     }
 
     async update(req: Request, res: Response) {
         log.info('-- PostsController method ".update" called --');
+        try {
+
         const {params} = req || {};
         const paramsId = params.id;
         let file: any;
@@ -132,10 +163,18 @@ class PostsController {
                 log.info(`Post with id ${req.params.id} is successfully updated`, req.body)
             }
         })
+        } catch (err) {
+            log.error(err);
+            res.status(500).json({
+                message: 'Server error',
+                errorType: ErrorTypes.ServerError
+            })
+        }
     }
 
     async delete(req: Request, res: Response) {
         log.info('-- PostsController method ".delete" called --');
+        try {
 
         const {sub: userId}: any = await getUserIdByToken(req.headers.authorization);
         const deletedAd = await PostModel.findByIdAndDelete(req.params.id).exec();
@@ -155,6 +194,13 @@ class PostsController {
                 message: `Error, can\'t delete Post with id ${req.params.id} from DB`
             })
             log.error(`Error, can\'t delete Post with id ${req.params.id} from DB`)
+        }
+        } catch (err) {
+            log.error(err);
+            res.status(500).json({
+                message: 'Server error',
+                errorType: ErrorTypes.ServerError
+            })
         }
 
     }
