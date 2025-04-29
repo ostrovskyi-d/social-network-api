@@ -42,10 +42,10 @@ const userSchema = new Schema<UserInterface>(
         followedBy: [{type: Schema.Types.ObjectId, ref: 'User'}],
         following: [{type: Schema.Types.ObjectId, ref: 'User'}],
         contacts: {
-            linkedIn: {type: String, unique: true},
-            github: {type: String, unique: true},
-            facebook: {type: String, unique: true},
-            instagram: {type: String, unique: true},
+            linkedIn: {type: String},
+            github: {type: String},
+            facebook: {type: String},
+            instagram: {type: String},
         },
     },
     {
