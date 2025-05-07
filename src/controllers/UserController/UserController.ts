@@ -250,8 +250,9 @@ class UserController {
     async update(req: Request, res: Response) {
         log.info('-- UserController method ".update" called --');
         try {
-
             const {body, headers, files} = req;
+
+            console.log('req.body: ', JSON.stringify(body));
 
             const {sub: tokenUserId}: any = await getUserIdByToken(headers.authorization);
             const tokenUser: any = await User.findById(tokenUserId);
