@@ -53,7 +53,7 @@ class UserController {
 
             if (filters?.includes(UsersFilters.Followed)) {
                 const tokenUser = await User.findById(tokenOwnerId);
-                filter._id = {$in: tokenUser?.following || [], $ne: tokenUser};
+                filter._id = {$in: tokenUser?.following || [], $ne: tokenOwnerId};
             }
 
             // Get total user count with applied filters
