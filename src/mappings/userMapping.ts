@@ -7,10 +7,6 @@ export const userMapping = (user: any = {}): UserInterface => {
     if (user?.facebook) contacts.facebook = user.facebook;
     if (user?.instagram) contacts.instagram = user.instagram;
 
-    const photos: any = {};
-    if (user?.avatar) photos.avatar = user.avatar;
-    if (user?.background) photos.background = user.background;
-
     return {
         name: user?.name,
         phone: user?.phone,
@@ -23,6 +19,9 @@ export const userMapping = (user: any = {}): UserInterface => {
         email: user?.email,
         password: user?.password,
         contacts: contacts,
-        photos: photos,
+        photos: {
+            avatar: user?.avatar,
+            background: user?.background,
+        },
     };
 };
