@@ -1,6 +1,16 @@
 import {UserInterface} from "../models/UserModel";
 
 export const userMapping = (user: any = {}): UserInterface => {
+    const contacts: any = {};
+    if (user?.linkedIn) contacts.linkedIn = user.linkedIn;
+    if (user?.github) contacts.github = user.github;
+    if (user?.facebook) contacts.facebook = user.facebook;
+    if (user?.instagram) contacts.instagram = user.instagram;
+
+    const photos: any = {};
+    if (user?.avatar) photos.avatar = user.avatar;
+    if (user?.background) photos.background = user.background;
+
     return {
         name: user?.name,
         phone: user?.phone,
@@ -12,15 +22,7 @@ export const userMapping = (user: any = {}): UserInterface => {
         job: user?.job,
         email: user?.email,
         password: user?.password,
-        contacts: {
-            linkedIn: user?.linkedIn,
-            github: user?.github,
-            facebook: user?.facebook,
-            instagram: user?.instagram,
-        },
-        photos: {
-            avatar: user?.avatar,
-            background: user?.background,
-        }
-    }
-}
+        contacts: contacts,
+        photos: photos,
+    };
+};
