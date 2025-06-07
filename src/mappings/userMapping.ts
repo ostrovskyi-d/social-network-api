@@ -13,10 +13,10 @@ export const userMapping = (user: any = {}): UserInterface => {
         email: user?.email,
         password: user?.password,
         contacts: {
-            linkedIn: user?.linkedIn || "",
-            github: user?.github || "",
-            facebook: user?.facebook || "",
-            instagram: user?.instagram || "",
+            linkedIn: user?.linkedIn,
+            github: user?.github,
+            facebook: user?.facebook,
+            instagram: user?.instagram,
         },
         photos: {
             avatar: user?.avatar,

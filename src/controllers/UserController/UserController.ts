@@ -121,8 +121,8 @@ class UserController {
 
             if (user) {
                 const token = jwt.sign({sub: user._id}, JWT_SECRET as string, {expiresIn: '7d'});
-                log.info("Bearer token: ", token);
-                log.info("User ID: ", user._id);
+                console.log("Bearer token: ", token);
+                console.log("User ID: ", user._id);
 
                 // @ts-ignore
                 await user.save().then((doc, err) => {
@@ -183,8 +183,8 @@ class UserController {
 
             const token = jwt.sign({sub: user._id}, JWT_SECRET as string, {expiresIn: '7d'});
 
-            log.info("Bearer token: ", token);
-            log.info("User ID: ", user._id);
+            console.log("Bearer token: ", token);
+            console.log("User ID: ", user._id);
 
             res.status(200).json({
                 message: 'Success',
@@ -253,6 +253,7 @@ class UserController {
             const {body, headers, files} = req;
 
             console.log('req.body: ', JSON.stringify(body));
+            console.log('req.files: ', JSON.stringify(files));
 
             const {sub: tokenUserId}: any = await getUserIdByToken(headers.authorization);
             const tokenUser: any = await User.findById(tokenUserId);
