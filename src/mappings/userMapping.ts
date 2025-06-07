@@ -20,8 +20,8 @@ export const userMapping = (user: any = {}): UserInterface => {
         password: user?.password,
         contacts: contacts,
         photos: {
-            avatar: user?.avatar,
-            background: user?.background,
+            avatar: user?.avatar || "",
+            background: user?.background || "",
         },
     };
 };

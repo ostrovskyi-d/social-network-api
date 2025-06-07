@@ -40,7 +40,7 @@ export const uploadFile = async (file: Express.Multer.File) => {
 
             // If it exists, return its URL directly
             return {
-                uploaded: false,
+                uploaded: true,
                 location: `${S3_PATH}${hashedFileName}`,  // Constructed URL
                 key: hashedFileName,
             }
